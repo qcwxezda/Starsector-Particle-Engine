@@ -1,0 +1,5 @@
+{
+  "plugins": {
+    "particleengine_particles_plugin": "particleengine.ParticleEngine"
+  }
+}

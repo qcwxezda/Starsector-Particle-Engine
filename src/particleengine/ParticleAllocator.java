@@ -80,7 +80,7 @@ class ParticleAllocator {
         int oldPosition = combinedBuffer.position();
         combinedBuffer.position(0);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, combinedBuffer, GL15.GL_STREAM_DRAW);
+        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, combinedBuffer, GL15.GL_DYNAMIC_DRAW);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
         combinedBuffer.position(oldPosition);
 
@@ -93,7 +93,7 @@ class ParticleAllocator {
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         // Current buffer is big enough to fit this cluster
         if (combinedBuffer.position() + buffer.limit() <= combinedBuffer.capacity()) {
-            GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, combinedBuffer.position(), buffer);
+            GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, (long) combinedBuffer.position()*ParticleEngine.FLOAT_SIZE, buffer);
             combinedBuffer.put(buffer);
         }
         // Current buffer is too small, we must create a new buffer

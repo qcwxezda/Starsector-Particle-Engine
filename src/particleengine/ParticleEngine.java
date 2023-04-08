@@ -63,7 +63,7 @@ public class ParticleEngine extends BaseEveryFrameCombatPlugin {
     static final Set<Integer> usedVBOs = new HashSet<>();
 
 
-    private static void clearBuffers() {
+    static void clearBuffers() {
         // Clear used VAOs and VBOs, in case the last combat ended with particles still on screen
         for (int vao : usedVAOs) {
             GL30.glDeleteVertexArrays(vao);
@@ -177,7 +177,7 @@ public class ParticleEngine extends BaseEveryFrameCombatPlugin {
     public static void generateParticles(Cluster cluster) {
         ParticleEngine particleEngine = getInstance();
         if (particleEngine == null) {
-            log.warn("Failed to generate a particle cluster because the particle engine couldn't be found.");
+            log.warn("Failed to generate a particle cluster because the particle engine couldn't be found. Check that Global.getCombatEngine() isn't null.");
             return;
         }
 

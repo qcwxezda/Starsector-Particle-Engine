@@ -1,22 +1,24 @@
 #version 420
 
-layout (location = 0) in vec2 pos;
+// first 2 are particle's location at t=0, last 2 are emitter's location
+layout (location = 0) in vec4 pos_emitter_pos;
+layout (location = 1) in float emitter_forward_dir;
 // first 2 are velocity vector, last 2 are acceleration vector
-layout (location = 1) in vec4 vel_acc;
+layout (location = 2) in vec4 vel_acc;
 // amplitude, frequency, and phase of sinusoidal motion along global x axis
-layout (location = 2) in vec3 sinusoid_x;
+layout (location = 3) in vec3 sinusoid_x;
 // amplitude, frequency, and phase of sinusoidal motion along global y axis
-layout (location = 3) in vec3 sinusoid_y;
+layout (location = 4) in vec3 sinusoid_y;
 // elements are direction, angular velocity, and angular acceleration
-layout (location = 4) in vec3 angle_data;
-// circle the initial position at the given angle, last 2 are that angle's delta-t and acceleration
-layout (location = 5) in vec3 radial_data;
+layout (location = 5) in vec3 angle_data;
+// circle the initial position with the given angular velocity and acceleration
+layout (location = 6) in vec2 radial_data;
 // elements are scale, growth rate, and growth acceleration
-layout (location = 6) in vec3 size_data;
-layout (location = 7) in vec4 color_start;
-layout (location = 8) in vec4 color_end;
+layout (location = 7) in vec3 size_data;
+layout (location = 8) in vec4 color_start;
+layout (location = 9) in vec4 color_end;
 // fade in, fade out, starting time, ending time
-layout (location = 9) in vec4 fade_time_data;
+layout (location = 10) in vec4 fade_time_data;
 
 uniform mat4 projection;
 uniform float time;
@@ -37,22 +39,29 @@ mat2 rot_mat(float angle) {
 
 void main() {
   float lifetime = fade_time_data.w - fade_time_data.z;
-  float part_time = time - fade_time_data.z;
-  vec2 vert_pos = vert_locs[gl_VertexID];
-  vec2 new_pos = pos + part_time*vel_acc.xy + 0.5f*part_time*part_time*vel_acc.zw;
-  float new_angle = angle_data.x + part_time*angle_data.y + 0.5f*part_time*part_time*angle_data.z;
-  float radial_angle = radial_data.x + part_time*radial_data.y + 0.5f*part_time*part_time*radial_data.z;
-  float new_size = size_data.x + part_time*size_data.y + 0.5f*part_time*part_time*size_data.z;
+  float elapsed = time - fade_time_data.z;
+  vec2 emitter_pos = pos_emitter_pos.zw;
 
-  new_pos += vec2(sinusoid_x.x * sin(sinusoid_x.y * part_time + sinusoid_x.z), sinusoid_y.x * sin(sinusoid_y.y * part_time + sinusoid_y.z));
+  float revolution_angle = elapsed*radial_data.x + 0.5f* elapsed*elapsed*radial_data.y;
+
+  vec2 particle_pos = pos_emitter_pos.xy + elapsed*vel_acc.xy + 0.5f*elapsed*elapsed*vel_acc.zw;
+  particle_pos += vec2(sinusoid_x.x * sin(sinusoid_x.y * elapsed + sinusoid_x.z), sinusoid_y.x * sin(sinusoid_y.y * elapsed + sinusoid_y.z));
   // so that new_pos = pos at t = 0
-  new_pos -= vec2(sinusoid_x.x * sin(sinusoid_x.z), sinusoid_y.x * sin(sinusoid_y.z));
-  new_pos = rot_mat(radial_angle) * (new_pos - pos) + pos;
+  particle_pos -= vec2(sinusoid_x.x * sin(sinusoid_x.z), sinusoid_y.x * sin(sinusoid_y.z));
+  particle_pos = rot_mat(revolution_angle + emitter_forward_dir) * (particle_pos - emitter_pos) + emitter_pos;
 
-  vec2 vec = rot_mat(new_angle) * vec2(new_size*vert_pos.x - new_size/2.f, new_size*vert_pos.y - new_size/2.f);
-  gl_Position = projection * vec4(vec.x + new_pos.x, vec.y + new_pos.y, 1.f, 1.f);
+  float facing_angle = angle_data.x + elapsed*angle_data.y + 0.5f*elapsed*elapsed*angle_data.z;
+  vec2 vert_loc = vert_locs[gl_VertexID];
+  float size = size_data.x + elapsed*size_data.y + 0.5f* elapsed*elapsed*size_data.z;
+  vec2 vert_pos = rot_mat(facing_angle + emitter_forward_dir) * vec2(size * vert_loc.x - size /2.f, size * vert_loc.y - size /2.f);
 
-  tex_coord = vert_pos;
-  float alpha = min(1.f / fade_time_data.x * part_time, min(1.f, lifetime / fade_time_data.y - part_time / fade_time_data.y));
-  color = part_time > lifetime ? vec4(0.f, 0.f, 0.f, 0.f) : clamp(vec4(mix(color_start, color_end, part_time / lifetime)), 0.f, 1.f) * vec4(1.f, 1.f, 1.f, alpha);
+  gl_Position = projection * vec4(vert_pos.x + particle_pos.x, vert_pos.y + particle_pos.y, 1.f, 1.f);
+
+  tex_coord = vert_loc;
+
+  float alpha = min(1.f / fade_time_data.x * elapsed, min(1.f, lifetime / fade_time_data.y - elapsed / fade_time_data.y));
+  vec4 dead_color = vec4(0.f, 0.f, 0.f, 0.f);
+  vec4 alive_color = clamp(vec4(mix(color_start, color_end, elapsed / lifetime)), 0.f, 1.f) * vec4(1.f, 1.f, 1.f, alpha);
+  color = mix(alive_color, dead_color, float(elapsed > lifetime || size <= 0));
+  //color = (elapsed > lifetime || size <= 0) ? vec4(0.f, 0.f, 0.f, 0.f) : clamp(vec4(mix(color_start, color_end, elapsed / lifetime)), 0.f, 1.f) * vec4(1.f, 1.f, 1.f, alpha);
 }

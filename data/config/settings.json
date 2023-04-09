@@ -1,5 +1,5 @@
 {
   "plugins": {
-    "particleengine_particles_plugin": "particleengine.ParticleEngine"
+    "particleengine_particles_plugin": "particleengine.Particles"
   }
 }

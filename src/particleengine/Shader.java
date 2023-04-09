@@ -19,7 +19,9 @@ abstract class Shader {
             int fragShaderId = attachShader(GL20.GL_FRAGMENT_SHADER, programId, fragShaderPath);
             GL20.glLinkProgram(programId);
             if (GL20.glGetProgrami(programId, GL20.GL_LINK_STATUS) == GL11.GL_FALSE) {
-                throw new RuntimeException("(Particle Engine) Failure to link shader program");
+                System.err.println(GL20.glGetProgramInfoLog(programId, GL20.GL_INFO_LOG_LENGTH));
+                throw new RuntimeException("(Particle Engine) Failure to link shader program: "
+                        + GL20.glGetProgramInfoLog(programId, GL20.glGetProgrami(programId, GL20.GL_INFO_LOG_LENGTH)));
             }
             GL20.glDetachShader(programId, vertShaderId);
             GL20.glDetachShader(programId, fragShaderId);
@@ -42,7 +44,8 @@ abstract class Shader {
         GL20.glCompileShader(id);
 
         if (GL20.glGetShaderi(id, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
-            throw new RuntimeException("(Particle Engine) Failure to compile shader");
+            throw new RuntimeException("(Particle Engine) Failure to compile shader: "
+                    + GL20.glGetShaderInfoLog(id, GL20.glGetShaderi(id, GL20.GL_INFO_LOG_LENGTH)));
         }
 
         GL20.glAttachShader(program, id);

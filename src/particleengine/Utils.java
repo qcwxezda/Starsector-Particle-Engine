@@ -42,4 +42,23 @@ class Utils {
         }
         return sb.toString();
     }
+
+    public static int nearestBiggerPowerOfTwo(long n, int smallest) {
+        int r = smallest;
+        while (r < n) {
+            r <<= 1;
+            if (r < 0) {
+                return Integer.MAX_VALUE;
+            }
+        }
+        return r;
+    }
+
+    /** {@code {e1, e2}} should be a basis vector pair. */
+    public static Vector2f toStandardBasis(Vector2f v, Vector2f e1, Vector2f e2) {
+        Vector2f s1 = new Vector2f(e1), s2 = new Vector2f(e2);
+        s1.scale(v.x);
+        s2.scale(v.y);
+        return Vector2f.add(s1, s2, null);
+    }
 }

@@ -3,19 +3,21 @@ package particleengine;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.*;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 class ParticleAllocator {
     /** In number of floats. */
-    static final int INITIAL_BUFFER_SIZE = 1024;
+    static final int INITIAL_BUFFER_SIZE = 4096, MAX_BUFFER_SIZE = 2 << 29 - 1;
     /**
      * If the fraction of alive particles in {@code combinedBuffer} is less than this number,
      * will reallocate the buffer.
      */
     static final float REFACTOR_FILL_FRACTION = 0.5f;
-    FloatBuffer combinedBuffer;
+    int bufferSize = INITIAL_BUFFER_SIZE, bufferPosition = 0;
     SortedSet<AllocatedClusterData> allocatedClusters = new TreeSet<>();
     AllocatedClusterData lastAllocated = null;
     int particleCount = 0;
@@ -44,21 +46,22 @@ class ParticleAllocator {
             offset += Particles.VERTEX_ATTRIB_SIZES[i] * Particles.FLOAT_SIZE;
         }
 
-        combinedBuffer = BufferUtils.createFloatBuffer(INITIAL_BUFFER_SIZE);
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, combinedBuffer, GL15.GL_STATIC_DRAW);
+        FloatBuffer initialBuffer = BufferUtils.createFloatBuffer(INITIAL_BUFFER_SIZE);
+        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, initialBuffer, GL15.GL_DYNAMIC_DRAW);
 
         GL30.glBindVertexArray(0);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
     }
 
-    void registerParticleCreation(final AllocatedClusterData clusterData, Cluster cluster) {
-        particleCount += cluster.count;
+    void registerParticleCreation(final AllocatedClusterData clusterData) {
+        int count = clusterData.sizeInFloats / Particles.FLOATS_PER_PARTICLE;
+        particleCount += count;
         // See if we can merge this cluster with the previously generated one
         if (lastAllocated != null
                 && lastAllocated.generationTime == clusterData.generationTime
                 && lastAllocated.deathTime == clusterData.deathTime
                 && lastAllocated.locationInBuffer + lastAllocated.sizeInFloats == clusterData.locationInBuffer) {
-            lastAllocated.updateSize(lastAllocated.sizeInFloats + cluster.count*Particles.FLOATS_PER_PARTICLE);
+            lastAllocated.updateSize(lastAllocated.sizeInFloats + count*Particles.FLOATS_PER_PARTICLE);
         }
         else {
             allocatedClusters.add(clusterData);
@@ -68,7 +71,7 @@ class ParticleAllocator {
                 public void perform() {
                     registerParticleDeath(clusterData);
                 }
-            }, cluster.maxLife);
+            }, clusterData.deathTime - clusterData.generationTime);
         }
     }
 
@@ -78,77 +81,116 @@ class ParticleAllocator {
         // Delete this allocator if there are no particles left
         if (particleCount <= 0) {
             Particles.removeAllocator(type);
+            return;
         }
 
-        int particleCountInBuffer = combinedBuffer.position() / Particles.FLOATS_PER_PARTICLE;
+        int particleCountInBuffer = bufferPosition / Particles.FLOATS_PER_PARTICLE;
         if (particleCount < REFACTOR_FILL_FRACTION * particleCountInBuffer) {
             reallocateBuffer();
         }
     }
 
     private void reallocateBuffer() {
-        combinedBuffer.flip();
-        int numFloats = combinedBuffer.limit();
-        int newSize = Utils.nearestBiggerPowerOfTwo(numFloats, INITIAL_BUFFER_SIZE);
-
-        FloatBuffer newCombinedBuffer = BufferUtils.createFloatBuffer(newSize);
-
-        for (AllocatedClusterData clusterData : allocatedClusters) {
-            combinedBuffer.limit(clusterData.locationInBuffer + clusterData.sizeInFloats);
-            combinedBuffer.position(clusterData.locationInBuffer);
-            clusterData.updateLocation(newCombinedBuffer.position());
-            newCombinedBuffer.put(combinedBuffer);
-        }
-
-        combinedBuffer = newCombinedBuffer;
-
-        // The size of the buffer put into the native call is limit() - position(). We want to allocate
-        // the entire buffer, so temporarily set the position to 0.
-        int oldPosition = combinedBuffer.position();
-        combinedBuffer.position(0);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-        GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0, combinedBuffer);
+
+        long numBytes = (long) bufferPosition * Particles.FLOAT_SIZE;
+        ByteBuffer buffer = GL30.glMapBufferRange(
+                GL15.GL_ARRAY_BUFFER,
+                0,
+                numBytes,
+                GL30.GL_MAP_READ_BIT | GL30.GL_MAP_WRITE_BIT,
+                null);
+        buffer.order(ByteOrder.nativeOrder());
+
+        FloatBuffer fb1 = buffer.asFloatBuffer();
+        FloatBuffer fb2 = fb1.duplicate();
+
+        fb2.position(0);
+        for (AllocatedClusterData clusterData : allocatedClusters) {
+            fb1.limit(clusterData.locationInBuffer + clusterData.sizeInFloats);
+            fb1.position(clusterData.locationInBuffer);
+            clusterData.updateLocation(fb2.position());
+            fb2.put(fb1);
+        }
+        bufferPosition = fb2.position();
+
+        GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-        combinedBuffer.position(oldPosition);
+
+//        combinedBuffer.flip();
+//        int numFloats = combinedBuffer.limit();
+//        int newSize = Utils.nearestBiggerPowerOfTwo(numFloats, INITIAL_BUFFER_SIZE);
+//
+//        FloatBuffer newCombinedBuffer = BufferUtils.createFloatBuffer(newSize);
+//
+//        for (AllocatedClusterData clusterData : allocatedClusters) {
+//            combinedBuffer.limit(clusterData.locationInBuffer + clusterData.sizeInFloats);
+//            combinedBuffer.position(clusterData.locationInBuffer);
+//            clusterData.updateLocation(newCombinedBuffer.position());
+//            newCombinedBuffer.put(combinedBuffer);
+//        }
+//
+//        combinedBuffer = newCombinedBuffer;
+//
+//        // The size of the buffer put into the native call is limit() - position(). We want to allocate
+//        // the entire buffer, so temporarily set the position to 0.
+//        int oldPosition = combinedBuffer.position();
+//        combinedBuffer.position(0);
+//        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
+//        GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0, combinedBuffer);
+//        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+//        combinedBuffer.position(oldPosition);
     }
 
-    void allocateParticles(final Cluster cluster, float startTime) {
-        FloatBuffer buffer = cluster.generate(startTime);
+    void allocateParticles(Emitter emitter, int count, float startTime) {
+        FloatBuffer buffer = emitter.generate(count, startTime);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-        long requiredSize = (long) combinedBuffer.position() + buffer.limit();
-        int allocatedLocation = combinedBuffer.position();
-        // Current buffer is big enough to fit this cluster
-        if (requiredSize <= combinedBuffer.capacity()) {
-            GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, (long) combinedBuffer.position()* Particles.FLOAT_SIZE, buffer);
-            combinedBuffer.put(buffer);
+        long requiredSize = bufferPosition + buffer.limit();
+        int allocatedLocation = bufferPosition;
+        // Current buffer is big enough to fit this emitter
+        if (requiredSize <= bufferSize) {
+            GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, (long) bufferPosition*Particles.FLOAT_SIZE, buffer);
         }
         // Current buffer is too small, we must create a new buffer
         else {
-            int newSize = Utils.nearestBiggerPowerOfTwo(requiredSize, INITIAL_BUFFER_SIZE);
-            FloatBuffer newCombinedBuffer = BufferUtils.createFloatBuffer(newSize);
-            combinedBuffer.flip();
+            // Too many particles, can't allocate
+            if (bufferSize >= MAX_BUFFER_SIZE) {
+                GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+                return;
+            }
 
-            newCombinedBuffer.put(combinedBuffer);
-            newCombinedBuffer.put(buffer);
-            combinedBuffer = newCombinedBuffer;
+            int newSize = Utils.nearestBiggerPowerOfTwo(requiredSize, INITIAL_BUFFER_SIZE, MAX_BUFFER_SIZE);
 
-            // The size of the buffer put into the native call is limit() - position(). We want to allocate
-            // the entire buffer, so temporarily set the position to 0.
-            int oldPosition = combinedBuffer.position();
-            combinedBuffer.position(0);
-            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, combinedBuffer, GL15.GL_STATIC_DRAW);
-            combinedBuffer.position(oldPosition);
+            FloatBuffer newBuffer = BufferUtils.createFloatBuffer(newSize);
+            if (bufferPosition > 0) {
+                ByteBuffer existingBuffer = GL30.glMapBufferRange(
+                        GL15.GL_ARRAY_BUFFER,
+                        0,
+                        (long) bufferPosition * Particles.FLOAT_SIZE,
+                        GL30.GL_MAP_READ_BIT | GL30.GL_MAP_WRITE_BIT,
+                        null);
+                existingBuffer.order(ByteOrder.nativeOrder());
+                newBuffer.put(existingBuffer.asFloatBuffer());
+                GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
+            }
+            newBuffer.put(buffer);
+            // Store the whole buffer
+            newBuffer.position(0);
+            newBuffer.limit(newBuffer.capacity());
+            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, newBuffer, GL15.GL_DYNAMIC_DRAW);
+            bufferSize = newSize;
         }
+        bufferPosition = (int) requiredSize;
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 
         AllocatedClusterData clusterData =
                 new AllocatedClusterData(
                         allocatedLocation,
-                        cluster.count * Particles.FLOATS_PER_PARTICLE,
+                        count * Particles.FLOATS_PER_PARTICLE,
                         startTime,
-                        startTime + cluster.maxLife);
-        registerParticleCreation(clusterData, cluster);
+                        startTime + emitter.maxLife);
+        registerParticleCreation(clusterData);
     }
 
     private static class AllocatedClusterData implements Comparable<AllocatedClusterData> {

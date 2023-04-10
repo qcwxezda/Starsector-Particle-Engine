@@ -6,20 +6,14 @@ import com.fs.starfarer.api.combat.CombatEngineAPI;
 import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.input.InputEventAPI;
-import org.apache.log4j.Logger;
 import org.lwjgl.opengl.*;
+import org.lwjgl.util.vector.Vector2f;
 
 import java.util.*;
 
-// TODO: make initialize take in the emitter position
-// TODO: Change "Cluster" to "Emitter"
-// TODO: Remove cluster size from initialization parameters, add it as a generation parameter
-// TODO: Fix issue where max of one cluster can be generated per frame
-
-/** An instanced particle emitter implementation.
- * Create particle clusters ("blueprints" for a set of particles) via {@link Particles#initialize}.
- * Set the clusters' data via methods in {@link Cluster}.
- * Then, generate particles according the cluster's data using {@link Particles#generate}.
+/** Particle system implementation.
+ * Create an emitter via {@link Particles#initialize}, set the emitter's properties with methods in
+ * {@link Emitter}, and generate particles using an emitter with {@link Particles#burst} or {@link Particles#stream}.
  *  */
 public class Particles extends BaseEveryFrameCombatPlugin {
 
@@ -36,9 +30,10 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             3,   // sinusoidal motion in y
             3,   // angular data
             2,   // radial revolution data
-            3,   // size data
+            3,   // x-size data
+            3,   // y-size data
             4,   // starting color
-            4,   // ending color
+            4,   // color shift
             4    // fade and time data
     };
 
@@ -54,8 +49,8 @@ public class Particles extends BaseEveryFrameCombatPlugin {
 
     private CombatEngineAPI engine;
     private float currentTime;
+    static final float minBurstDelay = 1f / 60f;
     private static final String customDataKey = "particleengine_ParticlesPlugin";
-    private static final Logger log = Global.getLogger(Particles.class);
     private final Map<ParticleType, ParticleAllocator> particleMap = new HashMap<>();
     private final Queue<DeferredAction> doLaterQueue = new PriorityQueue<>();
     static final Set<Integer> usedVAOs = new HashSet<>();
@@ -88,6 +83,15 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         }
 
         instance.doLaterQueue.add(new DeferredAction(action, instance.currentTime + delay));
+    }
+
+    static void doAtTime(Action action, float time) {
+        Particles instance = getInstance();
+        if (instance == null) {
+            return;
+        }
+
+        instance.doLaterQueue.add(new DeferredAction(action, time));
     }
 
     static void clearBuffers() {
@@ -161,7 +165,7 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));
             GL20.glUniform1f(ParticleShader.timeLoc, currentTime);
             GL20.glUniform1i(ParticleShader.useTextureLoc, type.sprite == null ? 0 : 1);
-            GL31.glDrawArraysInstanced(GL11.GL_TRIANGLE_STRIP, 0, 4, allocator.combinedBuffer.position() / FLOATS_PER_PARTICLE);
+            GL31.glDrawArraysInstanced(GL11.GL_TRIANGLE_STRIP, 0, 4, allocator.bufferPosition / FLOATS_PER_PARTICLE);
             GL30.glBindVertexArray(0);
             if (type.sprite != null) {
                 GL13.glActiveTexture(GL13.GL_TEXTURE0);
@@ -173,58 +177,133 @@ public class Particles extends BaseEveryFrameCombatPlugin {
     }
 
     /**
-     * Same as {@link Particles#initialize(int, SpriteAPI, int, int, int)}, but uses a default particle sprite instead
+     * Same as {@link Particles#initialize(Vector2f, SpriteAPI, int, int, int)}, but uses a default particle sprite instead
      * of sampling a texture.
      */
-    public static Cluster initialize(int count, int sfactor, int dfactor, int blendMode) {
-        return initialize(count, null, sfactor, dfactor, blendMode);
+    public static Emitter initialize(Vector2f location, int sfactor, int dfactor, int blendMode) {
+        return initialize(location, null, sfactor, dfactor, blendMode);
     }
 
-    /** Same as  {@link Particles#initialize(int, SpriteAPI, int, int, int)}, but uses the default
+    /** Same as  {@link Particles#initialize(Vector2f, SpriteAPI, int, int, int)}, but uses the default
      * additive blending and a default particle sprite. */
-    public static Cluster initialize(int count) {
-        return initialize(count, null);
+    public static Emitter initialize(Vector2f location) {
+        return initialize(location,null);
     }
 
     /**
-     *  Initialize a {@link Cluster}. The {@code Cluster}'s attributes will be initialized to
-     *  default values and should be set in subsequent calls. In particular, {@code position} defaults to {@code (0, 0)} and should
-     *  therefore always be manually set using {@link Cluster#setPosVelAcc} or {@link Cluster#setPosition}.
-     *  Note that this call does not generate particles or allocate any GPU memory. To actually create the particles,
-     *  use {@link Particles#generate(Cluster)}.
-     * @param count Number of particles in the {@code Cluster}.
+     *  Initialize an {@link Emitter}. The {@code Emitter}'s location will be set to {@code location}, specified
+     *  in world coordinates. The {@code Emitter}'s attributes will be initialized to
+     *  default values and should be set in subsequent calls. To generate particles,
+     *  use {@link Particles#burst} or {@link Particles#stream}.
+     *
      * @param sprite The texture that the particles should sample when rendered.
      * @param sfactor Source blend factor.
      * @param dfactor Destination blend factor.
      * @param blendMode Blending operation.
-     * @return A default {@link Cluster} object
+     * @return A default {@link Emitter}
      */
-    public static Cluster initialize(int count, SpriteAPI sprite, int sfactor, int dfactor, int blendMode) {
-        return new Cluster(count, sprite, sfactor, dfactor, blendMode);
-    }
-
-
-     /** Same as {@link Particles#initialize(int, SpriteAPI, int, int, int)}, but uses
-     * additive blending by default. */
-    public static Cluster initialize(int count, SpriteAPI sprite) {
-        return initialize(count, sprite, GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL14.GL_FUNC_ADD);
+    public static Emitter initialize(Vector2f location, SpriteAPI sprite, int sfactor, int dfactor, int blendMode) {
+        return new Emitter(location, sprite, sfactor, dfactor, blendMode);
     }
 
     /**
-     * Generates particles according to the data in {@code cluster}. Before calling this method, initialize a particle
-     * cluster with {@link Particles#initialize} and set the cluster's data via methods in {@link Cluster},
-     * e.g. {@link Cluster#setPosVelAcc}.
+     * Initializes an {@link Emitter} with the given sprite and blend mode settings, and then copies
+     * all of {@code copy}'s properties to it. Changes in properties of the resulting emitter are not reflected in
+     * the original copy, nor vice versa.
      *
-     * @param cluster {@link Cluster} object to generate
+     * @param copy {@link Emitter} whose properties to copy.
+     * @param sprite Texture to use for the new emitter.
+     * @param sfactor Source blend factor.
+     * @param dfactor Destination blend factor.
+     * @param blendMode Blending operation.
+     * @return An {@link Emitter} with the same properties as {@code copy}.
      */
-    public static void generate(Cluster cluster) {
+    public static Emitter initialize(Emitter copy, SpriteAPI sprite, int sfactor, int dfactor, int blendMode) {
+        Emitter emitter = initialize(copy.location, sprite, sfactor, dfactor, blendMode);
+        emitter.life(copy.minLife, copy.maxLife);
+        emitter.fadeTime(copy.minFadeIn, copy.maxFadeIn, copy.minFadeOut, copy.maxFadeOut);
+        emitter.setAxis(copy.xAxis);
+        emitter.setLocation(copy.location);
+        emitter.offset(copy.minOffset, copy.maxOffset);
+        emitter.velocity(copy.minVelocity, copy.maxVelocity);
+        emitter.acceleration(copy.minAcceleration, copy.maxAcceleration);
+        emitter.circularPositionSpread(copy.positionSpread);
+        emitter.circularVelocitySpread(copy.velocitySpread);
+        emitter.circularAccelerationSpread(copy.accelerationSpread);
+        emitter.facing(copy.minTheta, copy.maxTheta);
+        emitter.turnRate(copy.minW, copy.maxW);
+        emitter.turnAcceleration(copy.minAlpha, copy.maxAlpha);
+        emitter.size(copy.minSizeDataX[0], copy.maxSizeDataX[0], copy.minSizeDataY[0], copy.maxSizeDataY[0]);
+        emitter.growthRate(copy.minSizeDataX[1], copy.maxSizeDataX[1], copy.minSizeDataY[1], copy.maxSizeDataY[1]);
+        emitter.growthAcceleration(copy.minSizeDataX[2], copy.maxSizeDataX[2], copy.minSizeDataY[2], copy.maxSizeDataY[2]);
+        emitter.color(copy.startColor);
+        emitter.randomColor(copy.startColorRandom);
+        emitter.hsvaShift(copy.minColorShift, copy.maxColorShift);
+        emitter.radialVelocity(copy.minRadialVelocity, copy.maxRadialVelocity);
+        emitter.radialAcceleration(copy.minRadialAcceleration, copy.maxRadialAcceleration);
+        emitter.radialRevolution(copy.minRadialW, copy.maxRadialW, copy.minRadialAlpha, copy.maxRadialAlpha);
+        emitter.sinusoidalMotionX(
+                copy.minSinXAmplitude,
+                copy.maxSinXAmplitude,
+                copy.minSinXFrequency,
+                copy.maxSinXFrequency,
+                copy.minSinXPhase,
+                copy.maxSinXPhase);
+        emitter.sinusoidalMotionY(
+                copy.minSinYAmplitude,
+                copy.maxSinYAmplitude,
+                copy.minSinYFrequency,
+                copy.maxSinYFrequency,
+                copy.minSinYPhase,
+                copy.maxSinYPhase);
+        return emitter;
+    }
+
+    /**
+     * Same as {@link Particles#initialize(Emitter, SpriteAPI, int, int, int)}, but also copies {@code copy}'s
+     * blending settings.
+     *
+     * @param copy {@link Emitter} whose properties to copy
+     * @param sprite Texture to use for the new emitter
+     * @return An emitter with the same properties as {@code copy}
+     */
+    public static Emitter initialize(Emitter copy, SpriteAPI sprite) {
+        return initialize(copy, sprite, copy.sfactor, copy.dfactor, copy.blendMode);
+    }
+
+    /**
+     * Same as {@link Particles#initialize(Emitter, SpriteAPI, int, int, int)}, but also copies {@code copy}'s
+     * sprite and blending settings.
+     *
+     * @param copy {@link Emitter} whose properties to copy
+     * @return An emitter with the same properties as {@code copy}
+     */
+    public static Emitter initialize(Emitter copy) {
+        return initialize(copy, copy.sprite);
+    }
+
+     /** Same as {@link Particles#initialize(Vector2f, SpriteAPI, int, int, int)}, but uses
+     * additive blending by default. */
+    public static Emitter initialize(Vector2f location, SpriteAPI sprite) {
+        return initialize(location, sprite, GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL14.GL_FUNC_ADD);
+    }
+
+    /**
+     * Generates an instantaneous burst of particles.
+     *
+     * @param emitter {@link Emitter} to use.
+     * @param count number of particles to generate.
+     *
+     * @return Whether the particles were successfully generated. If {@code false}, this generally means that
+     * the combat engine is {@code null}.
+     */
+    public static boolean burst(Emitter emitter, int count) {
         Particles particleEngine = getInstance();
         if (particleEngine == null) {
-            log.warn("Failed to generate a particle cluster because the particle engine couldn't be found. Check that Global.getCombatEngine() isn't null.");
-            return;
+             return false;
         }
 
-        ParticleType type = new ParticleType(cluster.sprite, cluster.sfactor, cluster.dfactor, cluster.blendMode);
+        ParticleType type = new ParticleType(emitter.sprite, emitter.sfactor, emitter.dfactor, emitter.blendMode);
         ParticleAllocator allocator = particleEngine.particleMap.get(type);
 
         if (allocator == null) {
@@ -232,43 +311,44 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             particleEngine.particleMap.put(type, allocator);
         }
 
-        allocator.allocateParticles(cluster, particleEngine.currentTime);
+        allocator.allocateParticles(emitter, count, particleEngine.currentTime);
+        return true;
     }
 
     /**
-     *  Generates a stream of particles according to the data in {@code cluster}.
-     * @param cluster {@link Cluster} object to stream
-     * @param particlesPerSecond Total number of particles to be generated per second. The engine will generate
-     *                           {@code particlesPerSecond / cluster.count} bursts of {@code cluster.count} particles
-     *                           per second.
-     * @param duration Total amount of time this particle stream should last.
+     *  Generates a continuous stream of particles.
+     *
+     * @param emitter {@link Emitter} to use.
+     * @param particlesPerBurst Number of particles that should be generated at once.
+     * @param particlesPerSecond Total number of particles generated per second.
+     * @param duration Amount of time this particle stream should last.
      */
-    public static void stream(final Cluster cluster, float particlesPerSecond, float duration) {
-        stream(cluster, particlesPerSecond, duration, null);
+    public static void stream(final Emitter emitter, int particlesPerBurst, float particlesPerSecond, float duration) {
+        stream(emitter, particlesPerBurst, particlesPerSecond, duration, null);
     }
 
-    /** Custom action that can be performed before each generation in a {@link Particles#stream(Cluster, float, float, StreamAction)} call. */
+    /** Custom action that can be performed before each generation in a {@link Particles#stream(Emitter, int, float, float, StreamAction)} call. */
     public interface StreamAction {
         /**
-         * @param cluster The {@link Cluster} that was initially fed to the {@link Particles#stream(Cluster, float, float, StreamAction)} call.
+         * @param emitter The {@link Emitter} that was initially fed to the {@link Particles#stream(Emitter, int, float, float, StreamAction)} call.
          * @return If {@code false}, the stream will stop generating particles. Otherwise, has no effect.
          */
-        boolean apply(Cluster cluster);
+        boolean apply(Emitter emitter);
     }
 
     /**
-     *  Generates a stream of particles according to the data in {@code cluster}.
+     *  Generates a continuous stream of particles.
      *
-     * @param cluster {@link Cluster} object to stream
-     * @param particlesPerSecond Total number of particles to be generated per second. The engine will generate
-     *                                 {@code particlesPerSecond / cluster.count} bursts of {@code cluster.count} particles
-     *                                 per second.
+     * @param emitter {@link Emitter} to use.
+     * @param particlesPerBurst Number of particles that should be generated at once.
+     * @param particlesPerSecond Total number of particles generated per second.
      * @param maxDuration Maximum amount of time this particle stream should last.
      * @param doBeforeGenerating Custom function that's called immediately before each particle generation sequence in this stream.
      *                           Returning {@code false} will end the stream. Can be {@code null}.
      */
     public static void stream(
-            final Cluster cluster,
+            final Emitter emitter,
+            int particlesPerBurst,
             float particlesPerSecond,
             final float maxDuration,
             final StreamAction doBeforeGenerating) {
@@ -277,19 +357,31 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             return;
         }
 
-        final float delayBetweenBursts = cluster.count / particlesPerSecond;
+        final int newParticlesPerBurst;
+        final float newBurstDelay;
+
+        float burstDelay = particlesPerBurst / particlesPerSecond;
+        if (burstDelay >= minBurstDelay) {
+            newParticlesPerBurst = particlesPerBurst;
+            newBurstDelay = burstDelay;
+        } else {
+            newParticlesPerBurst = (int) Math.floor(particlesPerSecond * minBurstDelay);
+            newBurstDelay = newParticlesPerBurst / particlesPerSecond;
+        }
+
         final float startTime = instance.currentTime;
-        doLater(new Action() {
+        doAtTime(new Action() {
+            float lastBurstTime = startTime;
             @Override
             public void perform() {
                 if (instance.currentTime <= startTime + maxDuration
-                        && (doBeforeGenerating == null || doBeforeGenerating.apply(cluster))) {
-                    generate(cluster);
-                    doLater(this, delayBetweenBursts);
+                        && (doBeforeGenerating == null || doBeforeGenerating.apply(emitter))
+                        && burst(emitter, newParticlesPerBurst)) {
+                    doAtTime(this, lastBurstTime + newBurstDelay);
+                    lastBurstTime += newBurstDelay;
                 }
             }
-        }, delayBetweenBursts);
-
+        }, startTime);
     }
 
     /**

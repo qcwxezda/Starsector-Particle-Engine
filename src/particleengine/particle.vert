@@ -14,11 +14,14 @@ layout (location = 5) in vec3 angle_data;
 // circle the initial position with the given angular velocity and acceleration
 layout (location = 6) in vec2 radial_data;
 // elements are scale, growth rate, and growth acceleration
-layout (location = 7) in vec3 size_data;
-layout (location = 8) in vec4 color_start;
-layout (location = 9) in vec4 color_end;
+layout (location = 7) in vec3 size_data_x;
+layout (location = 8) in vec3 size_data_y;
+// starting color and color shift are all in hsva
+// hue is in degrees
+layout (location = 9) in vec4 color_start;
+layout (location = 10) in vec4 color_shift;
 // fade in, fade out, starting time, ending time
-layout (location = 10) in vec4 fade_time_data;
+layout (location = 11) in vec4 fade_time_data;
 
 uniform mat4 projection;
 uniform float time;
@@ -37,6 +40,14 @@ mat2 rot_mat(float angle) {
   return mat2(cos(angle), sin(angle), -sin(angle), cos(angle));
 }
 
+// source: http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
+vec4 to_rgba(vec4 hsva) {
+  vec4 hsva_c = vec4(hsva.x, clamp(hsva.yzw, 0.f, 1.f));
+  vec4 K = vec4(1.f, 2.f / 3.f, 1.f / 3.f, 3.f);
+  vec3 p = abs(fract(hsva_c.xxx / 360.f + K.xyz) * 6.0 - K.www);
+  return vec4(hsva_c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), hsva_c.y), hsva_c.w);
+}
+
 void main() {
   float lifetime = fade_time_data.w - fade_time_data.z;
   float elapsed = time - fade_time_data.z;
@@ -52,8 +63,8 @@ void main() {
 
   float facing_angle = angle_data.x + elapsed*angle_data.y + 0.5f*elapsed*elapsed*angle_data.z;
   vec2 vert_loc = vert_locs[gl_VertexID];
-  float size = size_data.x + elapsed*size_data.y + 0.5f* elapsed*elapsed*size_data.z;
-  vec2 vert_pos = rot_mat(facing_angle + emitter_forward_dir) * vec2(size * vert_loc.x - size /2.f, size * vert_loc.y - size /2.f);
+  vec2 size = vec2(size_data_x.x + elapsed*size_data_x.y + 0.5f*elapsed*elapsed*size_data_x.z, size_data_y.x + elapsed*size_data_y.y + 0.5*elapsed*elapsed*size_data_y.z);
+  vec2 vert_pos = rot_mat(facing_angle + emitter_forward_dir) * (size*vert_loc - size/2.f);
 
   gl_Position = projection * vec4(vert_pos.x + particle_pos.x, vert_pos.y + particle_pos.y, 1.f, 1.f);
 
@@ -61,7 +72,6 @@ void main() {
 
   float alpha = min(1.f / fade_time_data.x * elapsed, min(1.f, lifetime / fade_time_data.y - elapsed / fade_time_data.y));
   vec4 dead_color = vec4(0.f, 0.f, 0.f, 0.f);
-  vec4 alive_color = clamp(vec4(mix(color_start, color_end, elapsed / lifetime)), 0.f, 1.f) * vec4(1.f, 1.f, 1.f, alpha);
-  color = mix(alive_color, dead_color, float(elapsed > lifetime || size <= 0));
-  //color = (elapsed > lifetime || size <= 0) ? vec4(0.f, 0.f, 0.f, 0.f) : clamp(vec4(mix(color_start, color_end, elapsed / lifetime)), 0.f, 1.f) * vec4(1.f, 1.f, 1.f, alpha);
+  vec4 alive_color = to_rgba(color_start + elapsed * color_shift);
+  color = mix(alive_color, dead_color, float(elapsed > lifetime || size.x <= 0 || size.y <= 0)) * vec4(1.f, 1.f, 1.f, alpha);
 }

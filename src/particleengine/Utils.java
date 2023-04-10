@@ -11,7 +11,7 @@ import java.io.InputStreamReader;
 import java.nio.FloatBuffer;
 import java.util.Objects;
 
-class Utils {
+abstract class Utils {
     /** 4x4 matrix, translation elements in 3rd dimension, 4th dimension is identity */
     public static FloatBuffer getProjectionMatrix(ViewportAPI viewport) {
         float W = viewport.getVisibleWidth();
@@ -43,12 +43,12 @@ class Utils {
         return sb.toString();
     }
 
-    public static int nearestBiggerPowerOfTwo(long n, int smallest) {
+    public static int nearestBiggerPowerOfTwo(long n, int smallest, int biggest) {
         int r = smallest;
         while (r < n) {
             r <<= 1;
-            if (r < 0) {
-                return Integer.MAX_VALUE;
+            if (r < 0 || r >= biggest) {
+                return biggest;
             }
         }
         return r;
@@ -60,5 +60,31 @@ class Utils {
         s1.scale(v.x);
         s2.scale(v.y);
         return Vector2f.add(s1, s2, null);
+    }
+
+    public static float[] toHSVA(float[] rgba, float[] dest) {
+        if (dest == null) {
+            dest = new float[4];
+        }
+
+        float r = rgba[0], g = rgba[1], b = rgba[2];
+        float CMax = Math.max(r, Math.max(g, b));
+        float CMin = Math.min(r, Math.min(g, b));
+        float delta = CMax - CMin;
+
+        if (delta == 0f) {
+            dest[0] = 0f;
+        } else if (CMax == r) {
+            dest[0] = 60f*(((g-b)/delta) % 6f);
+        } else if (CMax == g) {
+            dest[0] = 60f*((b-r)/delta + 2);
+        } else {
+            dest[0] = 60f*((r-g)/delta + 4);
+        }
+
+        dest[1] = CMax == 0f ? 0f : delta / CMax;
+        dest[2] = CMax;
+        dest[3] = rgba[3];
+        return dest;
     }
 }

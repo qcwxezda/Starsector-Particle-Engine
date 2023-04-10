@@ -1,4 +1,4 @@
-#version 420
+#version 330
 
 // first 2 are particle's location at t=0, last 2 are emitter's location
 layout (location = 0) in vec4 pos_emitter_pos;

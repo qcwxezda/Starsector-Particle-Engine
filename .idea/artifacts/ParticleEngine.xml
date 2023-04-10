@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="ParticleEngine">
-    <output-path>$PROJECT_DIR$/jars</output-path>
-    <root id="archive" name="ParticleEngine.jar">
-      <element id="module-output" name="Particle Engine" />
-    </root>
-  </artifact>
-</component>

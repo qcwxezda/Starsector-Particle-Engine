@@ -2,7 +2,6 @@
     "life": [1.5, 2.5], # Unless otherwise noted, can specify either a single value or a range of values
     "fadeIn": 0.4, # Specifying a single value x is equivalent to specifying [x, x]
     "fadeOut": 0.5,
-    "axis": 90, # Must be an angle in degrees
     "offsetX": 10,
     "offsetY": [0, 10.1],
     "velocityX": [100.2, 200.3],

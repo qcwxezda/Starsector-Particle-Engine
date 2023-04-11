@@ -67,6 +67,7 @@ abstract class Utils {
     }
 
     public static SpriteAPI getLoadedSprite(String loc, Collection<String> record) {
+        if (loc == null) return null;
         SpriteAPI sprite = Global.getSettings().getSprite(loc);
         if (sprite.getTextureId() <= 0) {
             try {

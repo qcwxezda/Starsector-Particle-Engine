@@ -116,30 +116,6 @@ class ParticleAllocator {
 
         GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-
-//        combinedBuffer.flip();
-//        int numFloats = combinedBuffer.limit();
-//        int newSize = Utils.nearestBiggerPowerOfTwo(numFloats, INITIAL_BUFFER_SIZE);
-//
-//        FloatBuffer newCombinedBuffer = BufferUtils.createFloatBuffer(newSize);
-//
-//        for (AllocatedClusterData clusterData : allocatedClusters) {
-//            combinedBuffer.limit(clusterData.locationInBuffer + clusterData.sizeInFloats);
-//            combinedBuffer.position(clusterData.locationInBuffer);
-//            clusterData.updateLocation(newCombinedBuffer.position());
-//            newCombinedBuffer.put(combinedBuffer);
-//        }
-//
-//        combinedBuffer = newCombinedBuffer;
-//
-//        // The size of the buffer put into the native call is limit() - position(). We want to allocate
-//        // the entire buffer, so temporarily set the position to 0.
-//        int oldPosition = combinedBuffer.position();
-//        combinedBuffer.position(0);
-//        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-//        GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0, combinedBuffer);
-//        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-//        combinedBuffer.position(oldPosition);
     }
 
     void allocateParticles(Emitter emitter, int count, float startTime) {

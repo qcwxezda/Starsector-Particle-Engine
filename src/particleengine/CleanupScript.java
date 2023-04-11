@@ -11,11 +11,11 @@ public class CleanupScript extends BaseCampaignEventListener {
     @Override
     public void reportEconomyTick(int iterIndex) {
         // No way to report simulation finished, so next best place to check buffers to clear is here.
-        Particles.clearBuffers();
+        Particles.cleanup();
     }
 
     @Override
     public void reportPlayerEngagement(EngagementResultAPI result) {
-        Particles.clearBuffers();
+        Particles.cleanup();
     }
 }

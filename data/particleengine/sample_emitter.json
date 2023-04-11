@@ -1,0 +1,40 @@
+{
+    "life": [1.5, 2.5], # Unless otherwise noted, can specify either a single value or a range of values
+    "fadeIn": 0.4, # Specifying a single value x is equivalent to specifying [x, x]
+    "fadeOut": 0.5,
+    "axis": 90, # Must be an angle in degrees
+    "offsetX": 10,
+    "offsetY": [0, 10.1],
+    "velocityX": [100.2, 200.3],
+    "velocityY": -100.6,
+    "accelerationX": 30.9,
+    "accelerationY": [-20.3, 20.4],
+    "circleOffset": 102.3,
+    "circleVelocity": [22.4, 36.3],
+    "circleAcceleration": [-24.6, 28.9],
+    "facing": 180,
+    "turnRate": [-7, 12.2],
+    "turnAcceleration": 10.5,
+    "sizeX": 50.8,
+    "sizeY": 50.9,
+    "growthRateX": [10.1, 20.2],
+    "growthRateY": [10.3, 20.4],
+    "growthAccelerationX": [-10.5, -20.6],
+    "growthAccelerationY": [-10.7, -20.8],
+    "color": [0.55, 0.01, 0.57, 0.99],   # Color must be a 4-element array with rgba values between 0 and 1
+    "randomHSVA": [30.2, -0.23, -0.24, -0.11], # H in degress, SVA between 0 and 1
+    "hueShift":-30.6,
+    "saturationShift":[-0.12, 0.13],
+    "colorValueShift":[-0.14, 0.15],
+    "alphaShift":[-0.16, 0.17],
+    "radialVelocity":11.1,
+    "radialAcceleration":12.2,
+    "revolutionRate":-13.3,
+    "revolutionAcceleration":14.4,
+    "sinXAmplitude":100.52,
+    "sinXFrequency":0.525,
+    "sinXPhase":0.05,
+    "sinYAmplitude":100.14,
+    "sinYFrequency":[0.53, 1.767],
+    "sinYPhase":90.33
+}

@@ -3,8 +3,9 @@
   "name":"Particle Engine",
   "author":"this_is_a_username",
   "version":"0.1",
-  "description":"Library used for generation of stateless, instanced particles. Computation is done in GPU, and particles of the same type are rendered with a single draw call, allowing for much better performance than the vanilla particle system.",
+  "description":"Library used for generation of stateless, instanced particles.",
   "gameVersion": "0.95.1a-RC6",
+  "utility": true,
   "jars": ["jars/ParticleEngine.jar"],
   "modPlugin":"particleengine.ParticleEngineModPlugin"
 }

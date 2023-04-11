@@ -12,8 +12,8 @@ import org.lwjgl.util.vector.Vector2f;
 import java.util.*;
 
 /** Particle system implementation.
- * Create an emitter via {@link Particles#initialize}, set the emitter's properties with methods in
- * {@link Emitter}, and generate particles using an emitter with {@link Particles#burst} or {@link Particles#stream}.
+ * Create an emitter via {@link #createCopy}, set the emitter's properties with methods in
+ * {@link Emitter}, and generate particles using an emitter with {@link #burst} or {@link #stream}.
  *  */
 public class Particles extends BaseEveryFrameCombatPlugin {
 
@@ -55,6 +55,7 @@ public class Particles extends BaseEveryFrameCombatPlugin {
     private final Queue<DeferredAction> doLaterQueue = new PriorityQueue<>();
     static final Set<Integer> usedVAOs = new HashSet<>();
     static final Set<Integer> usedVBOs = new HashSet<>();
+    static final Set<String> loadedTextures = new HashSet<>();
 
     interface Action {
         void perform();
@@ -94,7 +95,7 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         instance.doLaterQueue.add(new DeferredAction(action, time));
     }
 
-    static void clearBuffers() {
+    static void cleanup() {
         // Clear used VAOs and VBOs, in case the last combat ended with particles still on screen
         for (int vao : usedVAOs) {
             GL30.glDeleteVertexArrays(vao);
@@ -104,6 +105,10 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         }
         usedVAOs.clear();
         usedVBOs.clear();
+        for (String textureId : loadedTextures) {
+            Global.getSettings().unloadTexture(textureId);
+        }
+        loadedTextures.clear();
     }
 
     static void removeAllocator(ParticleType type) {
@@ -128,7 +133,7 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         currentTime = 0f;
 
         engine.getCustomData().put(customDataKey, this);
-        clearBuffers();
+        cleanup();
     }
 
     @Override
@@ -177,26 +182,30 @@ public class Particles extends BaseEveryFrameCombatPlugin {
     }
 
     /**
-     * Same as {@link Particles#initialize(Vector2f, SpriteAPI, int, int, int)}, but uses a default particle sprite instead
+     * Same as {@link #initialize(Vector2f, SpriteAPI, int, int, int)}, but uses a default particle sprite instead
      * of sampling a texture.
      */
     public static Emitter initialize(Vector2f location, int sfactor, int dfactor, int blendMode) {
-        return initialize(location, null, sfactor, dfactor, blendMode);
+        return initialize(location, (SpriteAPI) null, sfactor, dfactor, blendMode);
     }
 
-    /** Same as  {@link Particles#initialize(Vector2f, SpriteAPI, int, int, int)}, but uses the default
+    /** Same as  {@link #initialize(Vector2f, SpriteAPI, int, int, int)}, but uses the default
      * additive blending and a default particle sprite. */
     public static Emitter initialize(Vector2f location) {
-        return initialize(location,null);
+        return initialize(location, (SpriteAPI) null);
     }
 
     /**
      *  Initialize an {@link Emitter}. The {@code Emitter}'s location will be set to {@code location}, specified
      *  in world coordinates. The {@code Emitter}'s attributes will be initialized to
      *  default values and should be set in subsequent calls. To generate particles,
-     *  use {@link Particles#burst} or {@link Particles#stream}.
+     *  use {@link #burst} or {@link #stream}. <br><br>
+     *  Note: Does not load {@code sprite}'s texture into memory. Textures not in {@code data/config/settings.json}
+     *  are not automatically loaded. Use {@link #initialize(Vector2f, String, int, int, int)} to load
+     *  loose textures into memory.
      *
-     * @param sprite The texture that the particles should sample when rendered.
+     * @param sprite The texture that the particles should sample when rendered. Must already have
+     *               been loaded into memory.
      * @param sfactor Source blend factor.
      * @param dfactor Destination blend factor.
      * @param blendMode Blending operation.
@@ -218,7 +227,7 @@ public class Particles extends BaseEveryFrameCombatPlugin {
      * @param blendMode Blending operation.
      * @return An {@link Emitter} with the same properties as {@code copy}.
      */
-    public static Emitter initialize(Emitter copy, SpriteAPI sprite, int sfactor, int dfactor, int blendMode) {
+    public static Emitter createCopy(Emitter copy, SpriteAPI sprite, int sfactor, int dfactor, int blendMode) {
         Emitter emitter = initialize(copy.location, sprite, sfactor, dfactor, blendMode);
         emitter.life(copy.minLife, copy.maxLife);
         emitter.fadeTime(copy.minFadeIn, copy.maxFadeIn, copy.minFadeOut, copy.maxFadeOut);
@@ -227,21 +236,22 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         emitter.offset(copy.minOffset, copy.maxOffset);
         emitter.velocity(copy.minVelocity, copy.maxVelocity);
         emitter.acceleration(copy.minAcceleration, copy.maxAcceleration);
-        emitter.circularPositionSpread(copy.positionSpread);
-        emitter.circularVelocitySpread(copy.velocitySpread);
-        emitter.circularAccelerationSpread(copy.accelerationSpread);
+        emitter.circleOffset(copy.minPositionSpread, copy.maxPositionSpread);
+        emitter.circleVelocity(copy.minVelocitySpread, copy.maxVelocitySpread);
+        emitter.circleAcceleration(copy.minAccelerationSpread, copy.maxAccelerationSpread);
         emitter.facing(copy.minTheta, copy.maxTheta);
         emitter.turnRate(copy.minW, copy.maxW);
         emitter.turnAcceleration(copy.minAlpha, copy.maxAlpha);
         emitter.size(copy.minSizeDataX[0], copy.maxSizeDataX[0], copy.minSizeDataY[0], copy.maxSizeDataY[0]);
         emitter.growthRate(copy.minSizeDataX[1], copy.maxSizeDataX[1], copy.minSizeDataY[1], copy.maxSizeDataY[1]);
         emitter.growthAcceleration(copy.minSizeDataX[2], copy.maxSizeDataX[2], copy.minSizeDataY[2], copy.maxSizeDataY[2]);
-        emitter.color(copy.startColor);
-        emitter.randomColor(copy.startColorRandom);
-        emitter.hsvaShift(copy.minColorShift, copy.maxColorShift);
+        emitter.colorHSVA(copy.startColor);
+        emitter.randomHSVA(copy.startColorRandom);
+        emitter.colorShiftHSVA(copy.minColorShift, copy.maxColorShift);
         emitter.radialVelocity(copy.minRadialVelocity, copy.maxRadialVelocity);
         emitter.radialAcceleration(copy.minRadialAcceleration, copy.maxRadialAcceleration);
-        emitter.radialRevolution(copy.minRadialW, copy.maxRadialW, copy.minRadialAlpha, copy.maxRadialAlpha);
+        emitter.revolutionRate(copy.minRadialW, copy.maxRadialW);
+        emitter.revolutionAcceleration(copy.minRadialAlpha, copy.maxRadialAlpha);
         emitter.sinusoidalMotionX(
                 copy.minSinXAmplitude,
                 copy.maxSinXAmplitude,
@@ -260,32 +270,49 @@ public class Particles extends BaseEveryFrameCombatPlugin {
     }
 
     /**
-     * Same as {@link Particles#initialize(Emitter, SpriteAPI, int, int, int)}, but also copies {@code copy}'s
+     * Same as {@link #createCopy(Emitter, SpriteAPI, int, int, int)}, but also copies {@code copy}'s
      * blending settings.
      *
      * @param copy {@link Emitter} whose properties to copy
      * @param sprite Texture to use for the new emitter
      * @return An emitter with the same properties as {@code copy}
      */
-    public static Emitter initialize(Emitter copy, SpriteAPI sprite) {
-        return initialize(copy, sprite, copy.sfactor, copy.dfactor, copy.blendMode);
+    public static Emitter createCopy(Emitter copy, SpriteAPI sprite) {
+        return createCopy(copy, sprite, copy.sfactor, copy.dfactor, copy.blendMode);
     }
 
     /**
-     * Same as {@link Particles#initialize(Emitter, SpriteAPI, int, int, int)}, but also copies {@code copy}'s
+     * Same as {@link #createCopy(Emitter, SpriteAPI, int, int, int)}, but also copies {@code copy}'s
      * sprite and blending settings.
      *
      * @param copy {@link Emitter} whose properties to copy
      * @return An emitter with the same properties as {@code copy}
      */
-    public static Emitter initialize(Emitter copy) {
-        return initialize(copy, copy.sprite);
+    public static Emitter createCopy(Emitter copy) {
+        return createCopy(copy, copy.sprite);
     }
 
-     /** Same as {@link Particles#initialize(Vector2f, SpriteAPI, int, int, int)}, but uses
+     /** Same as {@link #initialize(Vector2f, SpriteAPI, int, int, int)}, but uses
      * additive blending by default. */
     public static Emitter initialize(Vector2f location, SpriteAPI sprite) {
         return initialize(location, sprite, GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL14.GL_FUNC_ADD);
+    }
+
+    /** Takes the sprite location instead of a SpriteAPI object.
+     * Will also load the texture into memory if it hasn't already been loaded.
+     * All textures loaded this way are automatically unloaded periodically and at the start of each combat.
+     *
+     * @see #initialize(Vector2f, SpriteAPI, int, int, int) */
+    public static Emitter initialize(Vector2f location, String spriteLoc, int sfactor, int dfactor, int blendMode) {
+        SpriteAPI sprite = Utils.getLoadedSprite(spriteLoc, loadedTextures);
+        return initialize(location, sprite, sfactor, dfactor, blendMode);
+    }
+
+    /**
+     *  Uses default additive blending.
+     *  @see #initialize(Vector2f, String, int, int, int) */
+    public static Emitter initialize(Vector2f location, String spriteLoc) {
+        return initialize(location, spriteLoc, GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL14.GL_FUNC_ADD);
     }
 
     /**
@@ -327,10 +354,10 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         stream(emitter, particlesPerBurst, particlesPerSecond, duration, null);
     }
 
-    /** Custom action that can be performed before each generation in a {@link Particles#stream(Emitter, int, float, float, StreamAction)} call. */
+    /** Custom action that can be performed before each generation in a {@link #stream(Emitter, int, float, float, StreamAction)} call. */
     public interface StreamAction {
         /**
-         * @param emitter The {@link Emitter} that was initially fed to the {@link Particles#stream(Emitter, int, float, float, StreamAction)} call.
+         * @param emitter The {@link Emitter} that was initially fed to the {@link #stream(Emitter, int, float, float, StreamAction)} call.
          * @return If {@code false}, the stream will stop generating particles. Otherwise, has no effect.
          */
         boolean apply(Emitter emitter);

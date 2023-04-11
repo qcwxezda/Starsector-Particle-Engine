@@ -852,7 +852,7 @@ public class Emitter {
         }
     }
 
-    static void putIfNotDefault(JSONObject json, String name, float min, float max, float defaultValue) throws JSONException {
+    private void putIfNotDefault(JSONObject json, String name, float min, float max, float defaultValue) throws JSONException {
         if (min == defaultValue && max == defaultValue) return;
         json.put(name, Utils.toFloatOrPairArray(min, max));
     }

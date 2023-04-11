@@ -714,9 +714,6 @@ public class Emitter {
         float[] fadeIn = Utils.readJSONArrayOrFloat(json, "fadeIn", new float[] {0f, 0f});
         float[] fadeOut = Utils.readJSONArrayOrFloat(json, "fadeOut", new float[] {0f, 0f});
         fadeTime(fadeIn[0], fadeIn[1], fadeOut[0], fadeOut[1]);
-        if (json.has("axis")) {
-            setAxis((float) json.getDouble("axis"));
-        }
         float[] offsetX = Utils.readJSONArrayOrFloat(json, "offsetX", new float[] {0f, 0f});
         float[] offsetY = Utils.readJSONArrayOrFloat(json, "offsetY", new float[] {0f, 0f});
         offset(offsetX[0], offsetX[1], offsetY[0], offsetY[1]);
@@ -798,10 +795,6 @@ public class Emitter {
             putIfNotDefault(json, "life", minLife, maxLife, 1f);
             putIfNotDefault(json, "fadeIn", minFadeIn, maxFadeIn, 0f);
             putIfNotDefault(json, "fadeOut", minFadeOut, maxFadeOut, 0f);
-            float angle = Misc.getAngleInDegrees(xAxis);
-            if (angle != 0f) {
-                json.put("axis", angle);
-            }
             putIfNotDefault(json, "offsetX", minOffset.x, maxOffset.x, 0f);
             putIfNotDefault(json, "offsetY", minOffset.y, maxOffset.y, 0f);
             putIfNotDefault(json, "velocityX", minVelocity.x, maxVelocity.x, 0f);

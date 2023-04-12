@@ -2,7 +2,7 @@
   "id":"particleengine",
   "name":"Particle Engine",
   "author":"this_is_a_username",
-  "version":"0.1",
+  "version":"0.3",
   "description":"Library used for generation of stateless, instanced particles.",
   "gameVersion": "0.95.1a-RC6",
   "utility": true,

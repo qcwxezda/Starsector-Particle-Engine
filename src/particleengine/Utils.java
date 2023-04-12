@@ -34,6 +34,13 @@ abstract class Utils {
         return buf;
     }
 
+    public static boolean isInViewport(Vector2f pt, ViewportAPI viewport, float border) {
+        float x = pt.x - viewport.getLLX(), y = pt.y - viewport.getLLY();
+        float W = viewport.getVisibleWidth(), H = viewport.getVisibleHeight();
+
+        return x >= -border && x <= W + border && y >= -border && y <= H + border;
+    }
+
     public static Object toFloatOrPairArray(float item1, float item2) {
         return item1 == item2 ? item1 : new JSONArray(Arrays.asList(item1, item2));
     }

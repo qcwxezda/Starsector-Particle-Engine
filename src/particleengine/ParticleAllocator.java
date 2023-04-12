@@ -1,5 +1,6 @@
 package particleengine;
 
+import com.fs.starfarer.api.combat.ViewportAPI;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.*;
 
@@ -118,8 +119,13 @@ class ParticleAllocator {
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
     }
 
-    void allocateParticles(Emitter emitter, int count, float startTime) {
-        FloatBuffer buffer = emitter.generate(count, startTime);
+    void allocateParticles(Emitter emitter, int count, float startTime, ViewportAPI viewport) {
+        FloatBuffer buffer = emitter.generate(count, startTime, viewport);
+
+        // If buffer is null, that means the emitter was out of bounds and no particles should be generated
+        if (buffer == null) {
+            return;
+        }
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         long requiredSize = bufferPosition + buffer.limit();

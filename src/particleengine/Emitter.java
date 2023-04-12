@@ -1,6 +1,7 @@
 package particleengine;
 
 import com.fs.starfarer.api.combat.CombatEngineLayers;
+import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.util.Misc;
 import org.apache.log4j.Logger;
@@ -65,6 +66,7 @@ public class Emitter {
     final Vector2f xAxis = new Vector2f(1f, 0f);
     boolean syncSize = false;
     CombatEngineLayers layer = CombatEngineLayers.CONTRAILS_LAYER;
+    float inactiveBorder = 100f;
 
     Emitter(
             Vector2f location,
@@ -77,6 +79,16 @@ public class Emitter {
         this.dfactor = dfactor; // blending
         this.blendMode = blendMode; // blending
         this.sprite = sprite;
+    }
+
+    /**
+     * Sets the "render radius" of the emitter. Formally, if an emitter is outside the box {@code [-amount,W+amount]x[-amount,H+amount]}
+     * relative to the viewport when particles would have been generated, that generate call is ignored.
+     *
+     * @param amount Border amount, in world units.
+     */
+    public void setInactiveBorder(float amount) {
+        this.inactiveBorder = amount;
     }
 
     /**
@@ -639,7 +651,12 @@ public class Emitter {
         this.maxSinYPhase = maxPhase;
     }
 
-    FloatBuffer generate(int count, float startTime) {
+    FloatBuffer generate(int count, float startTime, ViewportAPI viewport) {
+
+        if (!Utils.isInViewport(location, viewport, inactiveBorder)) {
+            return null;
+        }
+
         FloatBuffer buffer = BufferUtils.createFloatBuffer(count * Particles.FLOATS_PER_PARTICLE);
         float twoPi = 2f * (float) Math.PI;
         float emitterAngle = Misc.getAngleInDegrees(xAxis) * Misc.RAD_PER_DEG;

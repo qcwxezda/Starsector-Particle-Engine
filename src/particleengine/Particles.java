@@ -322,7 +322,7 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             allocator = pair.one;
         }
 
-        allocator.allocateParticles(emitter, count, particleEngine.currentTime);
+        allocator.allocateParticles(emitter, count, particleEngine.currentTime, particleEngine.engine.getViewport());
         return true;
     }
 

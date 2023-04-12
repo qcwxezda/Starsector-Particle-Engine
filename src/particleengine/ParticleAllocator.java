@@ -80,7 +80,7 @@ class ParticleAllocator {
         particleCount -= clusterData.sizeInFloats / Particles.FLOATS_PER_PARTICLE;
         // Delete this allocator if there are no particles left
         if (particleCount <= 0) {
-            Particles.removeAllocator(type);
+            Particles.removeType(type);
             return;
         }
 

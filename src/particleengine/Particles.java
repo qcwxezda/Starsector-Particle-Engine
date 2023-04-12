@@ -3,9 +3,9 @@ package particleengine;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.combat.BaseEveryFrameCombatPlugin;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
-import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.input.InputEventAPI;
+import com.fs.starfarer.api.util.Pair;
 import org.lwjgl.opengl.*;
 import org.lwjgl.util.vector.Vector2f;
 
@@ -48,10 +48,10 @@ public class Particles extends BaseEveryFrameCombatPlugin {
     }
 
     private CombatEngineAPI engine;
-    private float currentTime;
+    float currentTime;
     static final float minBurstDelay = 1f / 60f;
     private static final String customDataKey = "particleengine_ParticlesPlugin";
-    private final Map<ParticleType, ParticleAllocator> particleMap = new HashMap<>();
+    private final Map<ParticleType, Pair<ParticleAllocator, ParticleRenderer>> particleMap = new HashMap<>();
     private final Queue<DeferredAction> doLaterQueue = new PriorityQueue<>();
     static final Set<Integer> usedVAOs = new HashSet<>();
     static final Set<Integer> usedVBOs = new HashSet<>();
@@ -111,19 +111,25 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         loadedTextures.clear();
     }
 
-    static void removeAllocator(ParticleType type) {
+    static void removeType(ParticleType type) {
         Particles instance = getInstance();
         if (instance == null) {
             return;
         }
 
-        ParticleAllocator allocator = instance.particleMap.get(type);
-        if (allocator == null) {
+        Pair<ParticleAllocator, ParticleRenderer> pair = instance.particleMap.get(type);
+        if (pair == null) {
             return;
         }
 
+        ParticleAllocator allocator = pair.one;
+        ParticleRenderer renderer = pair.two;
+
         GL15.glDeleteBuffers(allocator.vbo);
         GL30.glDeleteVertexArrays(allocator.vao);
+        renderer.setExpired();
+        instance.engine.removeObject(renderer);
+
         instance.particleMap.remove(type);
     }
 
@@ -149,36 +155,6 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         }
 
         currentTime += amount;
-    }
-
-    @Override
-    public void renderInWorldCoords(ViewportAPI viewport) {
-        GL20.glUseProgram(ParticleShader.programId);
-        GL11.glEnable(GL11.GL_BLEND);
-        for (Map.Entry<ParticleType, ParticleAllocator> entry : particleMap.entrySet()) {
-            ParticleType type = entry.getKey();
-            ParticleAllocator allocator = entry.getValue();
-            GL11.glBlendFunc(type.sfactor, type.dfactor);
-            GL14.glBlendEquation(type.blendMode);
-            if (type.sprite != null) {
-                int target = 1;
-                GL13.glActiveTexture(GL13.GL_TEXTURE0 + target);
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, type.sprite.getTextureId());
-                GL20.glUniform1i(ParticleShader.texSamplerLoc, target);
-            }
-            GL30.glBindVertexArray(allocator.vao);
-            GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));
-            GL20.glUniform1f(ParticleShader.timeLoc, currentTime);
-            GL20.glUniform1i(ParticleShader.useTextureLoc, type.sprite == null ? 0 : 1);
-            GL31.glDrawArraysInstanced(GL11.GL_TRIANGLE_STRIP, 0, 4, allocator.bufferPosition / FLOATS_PER_PARTICLE);
-            GL30.glBindVertexArray(0);
-            if (type.sprite != null) {
-                GL13.glActiveTexture(GL13.GL_TEXTURE0);
-            }
-        }
-        GL14.glBlendEquation(GL14.GL_FUNC_ADD);
-        GL11.glDisable(GL11.GL_BLEND);
-        GL20.glUseProgram(0);
     }
 
     /**
@@ -330,12 +306,20 @@ public class Particles extends BaseEveryFrameCombatPlugin {
              return false;
         }
 
-        ParticleType type = new ParticleType(emitter.sprite, emitter.sfactor, emitter.dfactor, emitter.blendMode);
-        ParticleAllocator allocator = particleEngine.particleMap.get(type);
+        ParticleType type = new ParticleType(emitter.sprite, emitter.sfactor, emitter.dfactor, emitter.blendMode, emitter.layer);
+        Pair<ParticleAllocator, ParticleRenderer> pair = particleEngine.particleMap.get(type);
 
-        if (allocator == null) {
+        ParticleAllocator allocator;
+        if (pair == null) {
             allocator = new ParticleAllocator(type);
-            particleEngine.particleMap.put(type, allocator);
+            ParticleRenderer renderer = new ParticleRenderer(
+                    emitter.layer,
+                    allocator,
+                    particleEngine);
+            particleEngine.particleMap.put(type, new Pair<>(allocator, renderer));
+            Global.getCombatEngine().addLayeredRenderingPlugin(renderer);
+        } else {
+            allocator = pair.one;
         }
 
         allocator.allocateParticles(emitter, count, particleEngine.currentTime);

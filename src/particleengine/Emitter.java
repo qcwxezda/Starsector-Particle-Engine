@@ -1,5 +1,6 @@
 package particleengine;
 
+import com.fs.starfarer.api.combat.CombatEngineLayers;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.util.Misc;
 import org.apache.log4j.Logger;
@@ -63,6 +64,7 @@ public class Emitter {
     float minSinYAmplitude = 0f, maxSinYAmplitude = 0f, minSinYFrequency = 0f, maxSinYFrequency = 0f, minSinYPhase = 0f, maxSinYPhase = 0f;
     final Vector2f xAxis = new Vector2f(1f, 0f);
     boolean syncSize = false;
+    CombatEngineLayers layer = CombatEngineLayers.CONTRAILS_LAYER;
 
     Emitter(
             Vector2f location,
@@ -77,6 +79,15 @@ public class Emitter {
         this.sprite = sprite;
     }
 
+    /**
+     * Sets the rendering layer of this emitter. See {@link com.fs.starfarer.api.combat.CombatEngineLayers} for an
+     * ordered list of possible values.
+     *
+     * @param layer Combat layer to render particles to
+     */
+    public void setLayer(CombatEngineLayers layer) {
+        this.layer = layer;
+    }
 
     /**
      * Sets this emitter's location. To set the starting position of particles relative to this emitter,

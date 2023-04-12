@@ -4,7 +4,10 @@ import org.lwjgl.opengl.GL20;
 
 abstract class ParticleShader extends Shader {
     public static int programId = -1;
-    public static int projectionLoc, timeLoc, resolutionLoc, useTextureLoc, texSamplerLoc;
+    public static int projectionLoc;
+    public static int timeLoc;
+    public static int useTextureLoc;
+    public static int texSamplerLoc;
     public static String projectionName = "projection", timeName = "time", useTextureName = "useTexture", texSamplerName = "texSampler";
 
     public static void init(String vertShaderPath, String fragShaderPath) {

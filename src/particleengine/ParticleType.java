@@ -1,16 +1,19 @@
 package particleengine;
 
+import com.fs.starfarer.api.combat.CombatEngineLayers;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 
 class ParticleType {
     final SpriteAPI sprite;
+    final CombatEngineLayers layer;
     final int sfactor, dfactor, blendMode;
 
-    ParticleType(SpriteAPI sprite, int sfactor, int dfactor, int blendMode) {
+    ParticleType(SpriteAPI sprite, int sfactor, int dfactor, int blendMode, CombatEngineLayers layer) {
         this.sprite = sprite;
         this.sfactor = sfactor;
         this.dfactor = dfactor;
         this.blendMode = blendMode;
+        this.layer = layer;
     }
 
     @Override
@@ -25,7 +28,8 @@ class ParticleType {
         return (sprite == null || sprite.getTextureId() == other.sprite.getTextureId())
                 && sfactor == other.sfactor
                 && dfactor == other.dfactor
-                && blendMode == other.blendMode;
+                && blendMode == other.blendMode
+                && layer == other.layer;
     }
 
     @Override
@@ -37,6 +41,7 @@ class ParticleType {
         hash = 31 * hash + sfactor;
         hash = 31 * hash + dfactor;
         hash = 31 * hash + blendMode;
+        hash = 31 * hash + layer.ordinal();
         return hash;
     }
 }

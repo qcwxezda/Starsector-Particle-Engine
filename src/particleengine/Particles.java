@@ -205,10 +205,15 @@ public class Particles extends BaseEveryFrameCombatPlugin {
      */
     public static Emitter createCopy(Emitter copy, SpriteAPI sprite, int sfactor, int dfactor, int blendMode) {
         Emitter emitter = initialize(copy.location, sprite, sfactor, dfactor, blendMode);
-        emitter.life(copy.minLife, copy.maxLife);
-        emitter.fadeTime(copy.minFadeIn, copy.maxFadeIn, copy.minFadeOut, copy.maxFadeOut);
         emitter.setAxis(copy.xAxis);
         emitter.setLocation(copy.location);
+        emitter.setLayer(copy.layer);
+        emitter.setSyncSize(copy.syncSize);
+        emitter.setSprite(copy.sprite);
+        emitter.setBlendMode(copy.sfactor, copy.dfactor, copy.blendMode);
+        emitter.setInactiveBorder(copy.inactiveBorder);
+        emitter.life(copy.minLife, copy.maxLife);
+        emitter.fadeTime(copy.minFadeIn, copy.maxFadeIn, copy.minFadeOut, copy.maxFadeOut);
         emitter.offset(copy.minOffset, copy.maxOffset);
         emitter.velocity(copy.minVelocity, copy.maxVelocity);
         emitter.acceleration(copy.minAcceleration, copy.maxAcceleration);

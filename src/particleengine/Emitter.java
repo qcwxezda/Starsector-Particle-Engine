@@ -65,7 +65,7 @@ public class Emitter {
     float minSinYAmplitude = 0f, maxSinYAmplitude = 0f, minSinYFrequency = 0f, maxSinYFrequency = 0f, minSinYPhase = 0f, maxSinYPhase = 0f;
     final Vector2f xAxis = new Vector2f(1f, 0f);
     boolean syncSize = false;
-    CombatEngineLayers layer = CombatEngineLayers.ABOVE_SHIPS_AND_MISSILES_LAYER;
+    CombatEngineLayers layer = CombatEngineLayers.ABOVE_PARTICLES_LOWER;
     float inactiveBorder = 100f;
 
     Emitter(

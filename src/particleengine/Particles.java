@@ -306,6 +306,8 @@ public class Particles extends BaseEveryFrameCombatPlugin {
      * the combat engine is {@code null}.
      */
     public static boolean burst(Emitter emitter, int count) {
+        if (count <= 0) return true;
+
         Particles particleEngine = getInstance();
         if (particleEngine == null) {
              return false;

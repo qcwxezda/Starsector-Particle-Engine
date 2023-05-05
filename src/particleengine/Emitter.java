@@ -66,7 +66,7 @@ public class Emitter {
     final Vector2f xAxis = new Vector2f(1f, 0f);
     boolean syncSize = false;
     CombatEngineLayers layer = CombatEngineLayers.ABOVE_PARTICLES_LOWER;
-    float inactiveBorder = 100f;
+    float inactiveBorder = 500f;
 
     Emitter(
             Vector2f location,

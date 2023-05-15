@@ -2,9 +2,9 @@
   "id":"particleengine",
   "name":"Particle Engine",
   "author":"this_is_a_username",
-  "version":"0.4",
+  "version":"0.5",
   "description":"Library used for generation of stateless, instanced particles.",
-  "gameVersion": "0.96a-RC6",
+  "gameVersion": "0.96a-RC9",
   "utility": true,
   "jars": ["jars/ParticleEngine.jar"],
   "modPlugin":"particleengine.ParticleEngineModPlugin"

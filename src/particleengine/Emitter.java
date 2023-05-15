@@ -1,26 +1,24 @@
 package particleengine;
 
 import com.fs.starfarer.api.combat.CombatEngineLayers;
-import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.util.Misc;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.lwjgl.BufferUtils;
 import org.lwjgl.util.vector.Vector2f;
 
 import java.awt.*;
 import java.io.PrintWriter;
-import java.nio.FloatBuffer;
 
 /**
- * A particle generator.
+ * Default particle generator.
  * Initialize an {@code Emitter} using {@link Particles#createCopy}. After setting the emitter's properties,
  * generate particles using {@link Particles#burst} or {@link Particles#stream}.
  */
-public class Emitter {
+@SuppressWarnings("unused")
+public class Emitter extends IEmitter {
     private static final Logger log = Logger.getLogger(Emitter.class);
     int sfactor, dfactor, blendMode;
     SpriteAPI sprite;
@@ -651,125 +649,124 @@ public class Emitter {
         this.maxSinYPhase = maxPhase;
     }
 
-    FloatBuffer generate(int count, float startTime, ViewportAPI viewport) {
+    @Override
+    public Vector2f getLocation() {
+        return location;
+    }
 
-        if (!Utils.isInViewport(location, viewport, inactiveBorder)) {
-            return null;
-        }
+    @Override
+    public SpriteAPI getSprite() {
+        return sprite;
+    }
 
-        FloatBuffer buffer = BufferUtils.createFloatBuffer(count * Particles.FLOATS_PER_PARTICLE);
+    @Override
+    public float getXDir() {
+        return Misc.getAngleInDegrees(xAxis);
+    }
+
+    @Override
+    public int getBlendSourceFactor() {
+        return sfactor;
+    }
+
+    @Override
+    public int getBlendDestinationFactor() {
+        return dfactor;
+    }
+
+    @Override
+    public int getBlendFunc() {
+        return blendMode;
+    }
+
+    @Override
+    public CombatEngineLayers getLayer() {
+        return layer;
+    }
+
+    @Override
+    public ParticleData initParticle(int id) {
+        ParticleData data = new ParticleData();
         float twoPi = 2f * (float) Math.PI;
-        float emitterAngle = Misc.getAngleInDegrees(xAxis) * Misc.RAD_PER_DEG;
 
-        for (int i = 0; i < count; i++) {
-            Vector2f newPos = new Vector2f(
-                    Utils.randBetween(minOffset.x, maxOffset.x),
-                    Utils.randBetween(minOffset.y, maxOffset.y));
-            Vector2f.add(newPos, location, newPos);
-            Vector2f.add(newPos, Utils.randomPointInRing(new Vector2f(), minPositionSpread, maxPositionSpread), newPos);
-            Vector2f radialDir = Misc.getDiff(newPos, location);
+        Vector2f newPos = new Vector2f(
+                Utils.randBetween(minOffset.x, maxOffset.x),
+                Utils.randBetween(minOffset.y, maxOffset.y));
+        Vector2f.add(newPos, Utils.randomPointInRing(new Vector2f(), minPositionSpread, maxPositionSpread), newPos);
+        data.offset(newPos);
 
-            Vector2f newVel = new Vector2f(
-                    Utils.randBetween(minVelocity.x, maxVelocity.x),
-                    Utils.randBetween(minVelocity.y, maxVelocity.y));
-            Vector2f.add(newVel, Utils.randomPointInRing(new Vector2f(), minVelocitySpread, maxVelocitySpread), newVel);
-            if (radialDir.lengthSquared() > 0f) {
-                radialDir.normalise();
-                radialDir.scale(Utils.randBetween(minRadialVelocity, maxRadialVelocity));
-                Vector2f.add(newVel, radialDir, newVel);
-            }
-
-            Vector2f newAcc = new Vector2f(
-                    Utils.randBetween(minAcceleration.x, maxAcceleration.x),
-                    Utils.randBetween(minAcceleration.y, maxAcceleration.y));
-            Vector2f.add(newAcc, Utils.randomPointInRing(new Vector2f(), minAccelerationSpread, maxAccelerationSpread), newAcc);
-            if (radialDir.lengthSquared() > 0f) {
-                radialDir.normalise();
-                radialDir.scale(Utils.randBetween(minRadialAcceleration, maxRadialAcceleration));
-                Vector2f.add(newAcc, radialDir, newAcc);
-            }
-
-            float newSinXAmplitude = Utils.randBetween(minSinXAmplitude, maxSinXAmplitude);
-            float newSinXFrequency = Utils.randBetween(minSinXFrequency, maxSinXFrequency) * twoPi;
-            float newSinXPhase = Utils.randBetween(minSinXPhase, maxSinXPhase) * Misc.RAD_PER_DEG;
-            float newSinYAmplitude = Utils.randBetween(minSinYAmplitude, maxSinYAmplitude);
-            float newSinYFrequency = Utils.randBetween(minSinYFrequency, maxSinYFrequency) * twoPi;
-            float newSinYPhase = Utils.randBetween(minSinYPhase, maxSinYPhase) * Misc.RAD_PER_DEG;
-
-            float newTheta = Utils.randBetween(minTheta, maxTheta) * Misc.RAD_PER_DEG;
-            float newW = Utils.randBetween(minW, maxW) * Misc.RAD_PER_DEG;
-            float newAlpha = Utils.randBetween(minAlpha, maxAlpha) * Misc.RAD_PER_DEG;
-
-            float newRadialW = Utils.randBetween(minRadialW, maxRadialW) * Misc.RAD_PER_DEG;
-            float newRadialAlpha = Utils.randBetween(minRadialAlpha, maxRadialAlpha) * Misc.RAD_PER_DEG;
-
-            float[] newSizeDataX = new float[3];
-            float[] newSizeDataY = new float[3];
-            for (int j = 0; j < 3; j++) {
-                newSizeDataX[j] = Utils.randBetween(minSizeDataX[j], maxSizeDataX[j]);
-                newSizeDataY[j] = syncSize ? newSizeDataX[j] : Utils.randBetween(minSizeDataY[j], maxSizeDataY[j]);
-
-            }
-
-            float[] newStartColor = new float[4];
-            for (int j = 0; j < 4; j++) {
-                newStartColor[j] = startColor[j] + Utils.randBetween(-startColorRandom[j]/2f, startColorRandom[j]/2f);
-            }
-
-            float[] newColorShift = new float[4];
-            for (int j = 0; j < 4; j++) {
-                newColorShift[j] = Utils.randBetween(minColorShift[j], maxColorShift[j]);
-            }
-
-            float newFadeIn = Utils.randBetween(minFadeIn, maxFadeIn);
-            float newFadeOut = Utils.randBetween(minFadeOut, maxFadeOut);
-            float newLife = Utils.randBetween(minLife, maxLife);
-
-            buffer.put(
-                    new float[]{
-                            newPos.x,
-                            newPos.y,
-                            location.x,
-                            location.y,
-                            emitterAngle,
-                            newVel.x,
-                            newVel.y,
-                            newAcc.x,
-                            newAcc.y,
-                            newSinXAmplitude,
-                            newSinXFrequency,
-                            newSinXPhase,
-                            newSinYAmplitude,
-                            newSinYFrequency,
-                            newSinYPhase,
-                            newTheta,
-                            newW,
-                            newAlpha,
-                            newRadialW,
-                            newRadialAlpha,
-                            newSizeDataX[0],
-                            newSizeDataX[1],
-                            newSizeDataX[2],
-                            newSizeDataY[0],
-                            newSizeDataY[1],
-                            newSizeDataY[2],
-                            newStartColor[0],
-                            newStartColor[1],
-                            newStartColor[2],
-                            newStartColor[3],
-                            newColorShift[0],
-                            newColorShift[1],
-                            newColorShift[2],
-                            newColorShift[3],
-                            newFadeIn,
-                            newFadeOut,
-                            startTime,
-                            startTime + newLife
-                    }
-            );
+        Vector2f newVel = new Vector2f(
+                Utils.randBetween(minVelocity.x, maxVelocity.x),
+                Utils.randBetween(minVelocity.y, maxVelocity.y));
+        Vector2f.add(newVel, Utils.randomPointInRing(new Vector2f(), minVelocitySpread, maxVelocitySpread), newVel);
+        if (newPos.lengthSquared() > 0f) {
+            newPos.normalise();
+            newPos.scale(Utils.randBetween(minRadialVelocity, maxRadialVelocity));
+            Vector2f.add(newVel, newPos, newVel);
         }
-        buffer.flip();
-        return buffer;
+        data.velocity(newVel);
+
+        Vector2f newAcc = new Vector2f(
+                Utils.randBetween(minAcceleration.x, maxAcceleration.x),
+                Utils.randBetween(minAcceleration.y, maxAcceleration.y));
+        Vector2f.add(newAcc, Utils.randomPointInRing(new Vector2f(), minAccelerationSpread, maxAccelerationSpread), newAcc);
+        if (newPos.lengthSquared() > 0f) {
+            newPos.normalise();
+            newPos.scale(Utils.randBetween(minRadialAcceleration, maxRadialAcceleration));
+            Vector2f.add(newAcc, newPos, newAcc);
+        }
+        data.acceleration(newAcc);
+
+        float newSinXAmplitude = Utils.randBetween(minSinXAmplitude, maxSinXAmplitude);
+        float newSinXFrequency = Utils.randBetween(minSinXFrequency, maxSinXFrequency) * twoPi;
+        float newSinXPhase = Utils.randBetween(minSinXPhase, maxSinXPhase) * Misc.RAD_PER_DEG;
+        data.sinusoidalXMotion(newSinXAmplitude, newSinXFrequency, newSinXPhase);
+
+        float newSinYAmplitude = Utils.randBetween(minSinYAmplitude, maxSinYAmplitude);
+        float newSinYFrequency = Utils.randBetween(minSinYFrequency, maxSinYFrequency) * twoPi;
+        float newSinYPhase = Utils.randBetween(minSinYPhase, maxSinYPhase) * Misc.RAD_PER_DEG;
+        data.sinusoidalYMotion(newSinYAmplitude, newSinYFrequency, newSinYPhase);
+
+        float newTheta = Utils.randBetween(minTheta, maxTheta) * Misc.RAD_PER_DEG;
+        data.facing(newTheta);
+        float newW = Utils.randBetween(minW, maxW) * Misc.RAD_PER_DEG;
+        data.turnRate(newW);
+        float newAlpha = Utils.randBetween(minAlpha, maxAlpha) * Misc.RAD_PER_DEG;
+        data.turnAcceleration(newAlpha);
+
+        float newRadialW = Utils.randBetween(minRadialW, maxRadialW) * Misc.RAD_PER_DEG;
+        data.revolutionRate(newRadialW);
+        float newRadialAlpha = Utils.randBetween(minRadialAlpha, maxRadialAlpha) * Misc.RAD_PER_DEG;
+        data.revolutionAcceleration(newRadialAlpha);
+
+        float[] newSizeDataX = new float[3];
+        float[] newSizeDataY = new float[3];
+        for (int j = 0; j < 3; j++) {
+            newSizeDataX[j] = Utils.randBetween(minSizeDataX[j], maxSizeDataX[j]);
+            newSizeDataY[j] = syncSize ? newSizeDataX[j] : Utils.randBetween(minSizeDataY[j], maxSizeDataY[j]);
+        }
+        data.size(newSizeDataX[0], newSizeDataY[0]);
+        data.growthRate(newSizeDataX[1], newSizeDataY[1]);
+        data.growthAcceleration(newSizeDataX[2], newSizeDataY[2]);
+
+        float[] newStartColor = new float[4];
+        for (int j = 0; j < 4; j++) {
+            newStartColor[j] = startColor[j] + Utils.randBetween(-startColorRandom[j]/2f, startColorRandom[j]/2f);
+        }
+        data.colorHSVA(newStartColor);
+
+        float[] newColorShift = new float[4];
+        for (int j = 0; j < 4; j++) {
+            newColorShift[j] = Utils.randBetween(minColorShift[j], maxColorShift[j]);
+        }
+        data.hueShift(newColorShift[0]).saturationShift(newColorShift[1]).colorValueShift(newColorShift[2]).alphaShift(newColorShift[3]);
+
+        float newFadeIn = Utils.randBetween(minFadeIn, maxFadeIn);
+        float newFadeOut = Utils.randBetween(minFadeOut, maxFadeOut);
+        float newLife = Utils.randBetween(minLife, maxLife);
+        data.fadeTime(newFadeIn, newFadeOut).life(newLife);
+
+        return data;
     }
 
     /**

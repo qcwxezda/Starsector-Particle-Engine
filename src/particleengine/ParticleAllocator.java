@@ -119,7 +119,7 @@ class ParticleAllocator {
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
     }
 
-    void allocateParticles(Emitter emitter, int count, float startTime, ViewportAPI viewport) {
+    void allocateParticles(IEmitter emitter, int count, float startTime, ViewportAPI viewport) {
         FloatBuffer buffer = emitter.generate(count, startTime, viewport);
 
         // If buffer is null, that means the emitter was out of bounds and no particles should be generated

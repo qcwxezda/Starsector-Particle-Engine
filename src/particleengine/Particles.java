@@ -15,6 +15,7 @@ import java.util.*;
  * Create an emitter via {@link #createCopy}, set the emitter's properties with methods in
  * {@link Emitter}, and generate particles using an emitter with {@link #burst} or {@link #stream}.
  *  */
+@SuppressWarnings("unused")
 public class Particles extends BaseEveryFrameCombatPlugin {
 
     /** Total number of floats passed into vertex shader per particle */
@@ -300,27 +301,45 @@ public class Particles extends BaseEveryFrameCombatPlugin {
      * Generates an instantaneous burst of particles.
      *
      * @param emitter {@link Emitter} to use.
-     * @param count number of particles to generate.
+     * @param count Number of particles to generate.
      *
      * @return Whether the particles were successfully generated. If {@code false}, this generally means that
      * the combat engine is {@code null}.
      */
     public static boolean burst(Emitter emitter, int count) {
+        return burstCustom(emitter, count);
+    }
+
+    /**
+     * Generates an instantaneous burst of particles using a custom emitter that extends {@link IEmitter}.
+     *
+     * @param emitter {@link IEmitter} to use.
+     * @param count Number of particles to generate.
+     *
+     * @return Whether the particles were successfully generated. If {@code false}, this generally means that
+     *         the combat engine is {@code null}.
+     */
+    public static boolean burstCustom(IEmitter emitter, int count) {
         if (count <= 0) return true;
 
         Particles particleEngine = getInstance();
         if (particleEngine == null) {
-             return false;
+            return false;
         }
 
-        ParticleType type = new ParticleType(emitter.sprite, emitter.sfactor, emitter.dfactor, emitter.blendMode, emitter.layer);
+        ParticleType type = new ParticleType(
+                emitter.getSprite(),
+                emitter.getBlendSourceFactor(),
+                emitter.getBlendDestinationFactor(),
+                emitter.getBlendFunc(),
+                emitter.getLayer());
         Pair<ParticleAllocator, ParticleRenderer> pair = particleEngine.particleMap.get(type);
 
         ParticleAllocator allocator;
         if (pair == null) {
             allocator = new ParticleAllocator(type);
             ParticleRenderer renderer = new ParticleRenderer(
-                    emitter.layer,
+                    emitter.getLayer(),
                     allocator,
                     particleEngine);
             particleEngine.particleMap.put(type, new Pair<>(allocator, renderer));
@@ -333,43 +352,30 @@ public class Particles extends BaseEveryFrameCombatPlugin {
         return true;
     }
 
-    /**
-     *  Generates a continuous stream of particles.
-     *
-     * @param emitter {@link Emitter} to use.
-     * @param particlesPerBurst Number of particles that should be generated at once.
-     * @param particlesPerSecond Total number of particles generated per second.
-     * @param duration Amount of time this particle stream should last.
-     */
-    public static void stream(final Emitter emitter, int particlesPerBurst, float particlesPerSecond, float duration) {
-        stream(emitter, particlesPerBurst, particlesPerSecond, duration, null);
-    }
 
-    /** Custom action that can be performed before each generation in a {@link #stream(Emitter, int, float, float, StreamAction)} call. */
+    /** Action that can be performed before each generation in a {@link #stream(Emitter, int, float, float, StreamAction)} call. */
     public interface StreamAction {
         /**
-         * @param emitter The {@link Emitter} that was initially fed to the {@link #stream(Emitter, int, float, float, StreamAction)} call.
+         * @param emitter {@link Emitter} that is about to generate particles.
          * @return If {@code false}, the stream will stop generating particles. Otherwise, has no effect.
          */
         boolean apply(Emitter emitter);
     }
 
-    /**
-     *  Generates a continuous stream of particles.
-     *
-     * @param emitter {@link Emitter} to use.
-     * @param particlesPerBurst Number of particles that should be generated at once.
-     * @param particlesPerSecond Total number of particles generated per second.
-     * @param maxDuration Maximum amount of time this particle stream should last.
-     * @param doBeforeGenerating Custom function that's called immediately before each particle generation sequence in this stream.
-     *                           Returning {@code false} will end the stream. Can be {@code null}.
-     */
-    public static void stream(
-            final Emitter emitter,
-            int particlesPerBurst,
-            float particlesPerSecond,
-            final float maxDuration,
-            final StreamAction doBeforeGenerating) {
+    /** Action that can be performed before each generation in a {@link #streamCustom(IEmitter, int, float, float, StreamActionCustom)} call. */
+    public interface StreamActionCustom {
+        /**
+         * @param emitter {@link IEmitter} that is about to generate particles.
+         * @return If {@code false}, the stream will stop generating particles. Otherwise, has no effect.
+         */
+        boolean apply(IEmitter emitter);
+    }
+
+    public static void streamCustom(final IEmitter emitter, int particlesPerBurst, float particlesPerSecond, float duration) {
+        streamCustom(emitter, particlesPerBurst, particlesPerSecond, duration, null);
+    }
+
+    public static void streamCustom(final IEmitter emitter, int particlesPerBurst, float particlesPerSecond, final float maxDuration, final StreamActionCustom doBeforeGenerating) {
         final Particles instance = getInstance();
         if (instance == null) {
             return;
@@ -394,12 +400,48 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             public void perform() {
                 if (instance.currentTime <= startTime + maxDuration
                         && (doBeforeGenerating == null || doBeforeGenerating.apply(emitter))
-                        && burst(emitter, newParticlesPerBurst)) {
+                        && burstCustom(emitter, newParticlesPerBurst)) {
                     doAtTime(this, lastBurstTime + newBurstDelay);
                     lastBurstTime += newBurstDelay;
                 }
             }
         }, startTime);
+    }
+
+    /**
+     *  Generates a continuous stream of particles.
+     *
+     * @param emitter {@link Emitter} to use.
+     * @param particlesPerBurst Number of particles that should be generated at once.
+     * @param particlesPerSecond Total number of particles generated per second.
+     * @param duration Amount of time this particle stream should last.
+     */
+    public static void stream(final Emitter emitter, int particlesPerBurst, float particlesPerSecond, float duration) {
+        stream(emitter, particlesPerBurst, particlesPerSecond, duration, null);
+    }
+
+    /**
+     *  Generates a continuous stream of particles.
+     *
+     * @param emitter {@link Emitter} to use.
+     * @param particlesPerBurst Number of particles that should be generated at once.
+     * @param particlesPerSecond Total number of particles generated per second.
+     * @param maxDuration Maximum amount of time this particle stream should last.
+     * @param doBeforeGenerating Custom function that's called immediately before each particle generation sequence in this stream.
+     *                           Returning {@code false} will end the stream. Can be {@code null}.
+     */
+    public static void stream(
+            final Emitter emitter,
+            int particlesPerBurst,
+            float particlesPerSecond,
+            final float maxDuration,
+            final StreamAction doBeforeGenerating) {
+        streamCustom(emitter, particlesPerBurst, particlesPerSecond, maxDuration, new StreamActionCustom() {
+            @Override
+            public boolean apply(IEmitter emitter) {
+                return doBeforeGenerating.apply((Emitter) emitter);
+            }
+        });
     }
 
     /**

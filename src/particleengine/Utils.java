@@ -124,14 +124,6 @@ abstract class Utils {
         return r;
     }
 
-    /** {@code {e1, e2}} should be a basis vector pair. */
-    public static Vector2f toStandardBasis(Vector2f v, Vector2f e1, Vector2f e2) {
-        Vector2f s1 = new Vector2f(e1), s2 = new Vector2f(e2);
-        s1.scale(v.x);
-        s2.scale(v.y);
-        return Vector2f.add(s1, s2, null);
-    }
-
     public static void toRGBA(float[] hsva, float[] dest) {
         float h = hsva[0], s = hsva[1], v = hsva[2], a = hsva[3];
         float c = v*s;

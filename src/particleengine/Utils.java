@@ -16,15 +16,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Objects;
 
-abstract class Utils {
-
+public abstract class Utils {
     private static final Logger log = Logger.getLogger(Utils.class);
 
     /** 4x4 matrix, translation elements in 3rd dimension, 4th dimension is identity */
-    public static FloatBuffer getProjectionMatrix(ViewportAPI viewport) {
+    static FloatBuffer getProjectionMatrix(ViewportAPI viewport) {
         float W = viewport.getVisibleWidth();
         float H = viewport.getVisibleHeight();
         float llx = viewport.getLLX();
@@ -34,19 +32,19 @@ abstract class Utils {
         return buf;
     }
 
-    public static boolean isInViewport(Vector2f pt, ViewportAPI viewport, float border) {
+    static boolean isInViewport(Vector2f pt, ViewportAPI viewport, float border) {
         float x = pt.x - viewport.getLLX(), y = pt.y - viewport.getLLY();
         float W = viewport.getVisibleWidth(), H = viewport.getVisibleHeight();
 
         return x >= -border && x <= W + border && y >= -border && y <= H + border;
     }
 
-    public static Object toFloatOrPairArray(float item1, float item2) {
+    static Object toFloatOrPairArray(float item1, float item2) {
         return item1 == item2 ? item1 : new JSONArray(Arrays.asList(item1, item2));
     }
 
     /** Size of array is assumed to be the same as size of {@code defaults}. */
-    public static float[] readJSONArrayOrFloat(JSONObject json, String name, float[] defaults, boolean allowFloats) throws JSONException {
+    static float[] readJSONArrayOrFloat(JSONObject json, String name, float[] defaults, boolean allowFloats) throws JSONException {
         if (!json.has(name)) {
             return defaults;
         }
@@ -73,14 +71,14 @@ abstract class Utils {
         return res;
     }
 
-    public static SpriteAPI getLoadedSprite(String loc, Collection<String> record) {
+    public static SpriteAPI getLoadedSprite(String loc) {
         if (loc == null) return null;
         SpriteAPI sprite = Global.getSettings().getSprite(loc);
         if (sprite.getTextureId() <= 0) {
             try {
                 Global.getSettings().loadTexture(loc);
                 sprite = Global.getSettings().getSprite(loc);
-                record.add(loc);
+                Particles.loadedTextures.add(loc);
             } catch (IOException e) {
                 log.warn(String.format("(Particle Engine) Failed to a load texture at location [%s] into memory", loc), e);
                 sprite = null;
@@ -89,21 +87,21 @@ abstract class Utils {
         return sprite;
     }
 
-    public static float[] readJSONArrayOrFloat(JSONObject json, String name, float[] defaults) throws JSONException {
+    static float[] readJSONArrayOrFloat(JSONObject json, String name, float[] defaults) throws JSONException {
         return readJSONArrayOrFloat(json, name, defaults, true);
     }
 
-    public static float randBetween(float a, float b) {
+    static float randBetween(float a, float b) {
         return Misc.random.nextFloat() * (b - a) + a;
     }
 
-    public static Vector2f randomPointInRing(Vector2f center, float inRadius, float outRadius) {
+    static Vector2f randomPointInRing(Vector2f center, float inRadius, float outRadius) {
         float theta = Misc.random.nextFloat() * 2f * (float) Math.PI;
         float r = (float) Math.sqrt(Misc.random.nextFloat() * (outRadius*outRadius - inRadius*inRadius) + inRadius*inRadius);
         return new Vector2f(center.x + r*(float)Math.cos(theta), center.y + r*(float)Math.sin(theta));
     }
 
-    public static String readFile(String path) throws IOException {
+    static String readFile(String path) throws IOException {
         StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(ParticleEngineModPlugin.class.getResourceAsStream(path))));
         String line;
@@ -113,7 +111,8 @@ abstract class Utils {
         return sb.toString();
     }
 
-    public static int nearestBiggerPowerOfTwo(long n, int smallest, int biggest) {
+    @SuppressWarnings("SameParameterValue")
+    static int nearestBiggerPowerOfTwo(long n, int smallest, int biggest) {
         int r = smallest;
         while (r < n) {
             r <<= 1;
@@ -124,7 +123,7 @@ abstract class Utils {
         return r;
     }
 
-    public static void toRGBA(float[] hsva, float[] dest) {
+    static void toRGBA(float[] hsva, float[] dest) {
         float h = hsva[0], s = hsva[1], v = hsva[2], a = hsva[3];
         float c = v*s;
         float x = c*(1f - Math.abs((h/60f) % 2f - 1f));
@@ -144,7 +143,7 @@ abstract class Utils {
         dest[3] = a;
     }
 
-    public static void toHSVA(float[] rgba, float[] dest) {
+    static void toHSVA(float[] rgba, float[] dest) {
         float r = rgba[0], g = rgba[1], b = rgba[2];
         float CMax = Math.max(r, Math.max(g, b));
         float CMin = Math.min(r, Math.min(g, b));

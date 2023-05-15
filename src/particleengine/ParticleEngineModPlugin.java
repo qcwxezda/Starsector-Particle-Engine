@@ -10,7 +10,6 @@ import java.io.IOException;
 
 @SuppressWarnings("unused")
 public class ParticleEngineModPlugin extends BaseModPlugin {
-
     static String savedEmittersDirectory = null;
     private static final Logger log = Logger.getLogger(ParticleEngineModPlugin.class);
 

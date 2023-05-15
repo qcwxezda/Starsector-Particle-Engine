@@ -13,7 +13,7 @@ import java.awt.*;
 import java.io.PrintWriter;
 
 /**
- * Default particle generator.
+ * Default particle generator that implements {@link IEmitter}.
  * Initialize an {@code Emitter} using {@link Particles#createCopy}. After setting the emitter's properties,
  * generate particles using {@link Particles#burst} or {@link Particles#stream}.
  */
@@ -148,7 +148,7 @@ public class Emitter extends IEmitter {
      * @param loc Location of sprite to use. If {@code null}, will set the sprite to {@code null}.
      */
     public void setSprite(String loc) {
-        this.sprite = Utils.getLoadedSprite(loc, Particles.loadedTextures);
+        this.sprite = Utils.getLoadedSprite(loc);
     }
 
     /**
@@ -685,7 +685,12 @@ public class Emitter extends IEmitter {
     }
 
     @Override
-    public ParticleData initParticle(int id) {
+    public float getRenderRadius() {
+        return inactiveBorder;
+    }
+
+    @Override
+    protected ParticleData initParticle(int id) {
         ParticleData data = new ParticleData();
         float twoPi = 2f * (float) Math.PI;
 

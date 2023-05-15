@@ -6,7 +6,6 @@ import org.lwjgl.opengl.GL20;
 import java.io.IOException;
 
 abstract class Shader {
-
     protected static int createProgram(String vertShaderPath, String fragShaderPath, int existingProgramId) {
         try {
 

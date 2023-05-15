@@ -10,7 +10,6 @@ import org.lwjgl.opengl.*;
 import java.util.EnumSet;
 
 class ParticleRenderer implements CombatLayeredRenderingPlugin {
-
     final CombatEngineLayers layer;
     final EnumSet<CombatEngineLayers> activeLayers;
     final ParticleAllocator allocator;

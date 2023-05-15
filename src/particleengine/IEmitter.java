@@ -85,17 +85,17 @@ public abstract class IEmitter {
         /**
          * Initial location of this particle relative to the parent emitter, along that emitter's axes.
          */
-        private Vector2f offset = new Vector2f();
+        private final Vector2f offset = new Vector2f();
 
         /**
          * Initial velocity of this particle along its parent emitter's axes.
          */
-        private Vector2f velocity = new Vector2f();
+        private final Vector2f velocity = new Vector2f();
 
         /**
          * Acceleration of this particle along its parent emitter's axes.
          */
-        private Vector2f acceleration = new Vector2f();
+        private final Vector2f acceleration = new Vector2f();
 
         /**
          * Amplitude, frequency, and phase of sinusoidal motion along emitter's x-axis. Phase in degrees.
@@ -141,17 +141,17 @@ public abstract class IEmitter {
         }
 
         public ParticleData offset(Vector2f offset) {
-            this.offset = offset;
+            this.offset.set(offset);
             return this;
         }
 
         public ParticleData velocity(Vector2f velocity) {
-            this.velocity = velocity;
+            this.velocity.set(velocity);
             return this;
         }
 
         public ParticleData acceleration(Vector2f acceleration) {
-            this.acceleration = acceleration;
+            this.acceleration.set(acceleration);
             return this;
         }
 

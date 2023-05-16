@@ -58,18 +58,18 @@ public abstract class IEmitter {
      * Construct parameters for a particle. Doesn't actually generate the particle. Use {@link Particles#burst}
      * to generate particles from an emitter.
      *
-     * @param id Index of the particle in the burst
+     * @param id Index of the particle in the burst or stream
      * @return Object containing the necessary data for particle generation
      */
     protected abstract ParticleData initParticle(int id);
 
-    protected final FloatBuffer generate(int count, float startTime, ViewportAPI viewport) {
+    protected final FloatBuffer generate(int count, int startIndex, float startTime, ViewportAPI viewport) {
         if (!Utils.isInViewport(getLocation(), viewport, getRenderRadius())) {
             return null;
         }
         FloatBuffer buffer = BufferUtils.createFloatBuffer(count * Particles.FLOATS_PER_PARTICLE);
         for (int i = 0; i < count; i++) {
-            ParticleData data = initParticle(i);
+            ParticleData data = initParticle(startIndex + i);
             if (data != null) {
                 maxLife = Math.max(maxLife, data.life);
                 data.addToFloatBuffer(this, startTime, buffer);

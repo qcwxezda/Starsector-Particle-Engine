@@ -309,6 +309,10 @@ public class Particles extends BaseEveryFrameCombatPlugin {
      * the combat engine is {@code null}.
      */
     public static boolean burst(IEmitter emitter, int count) {
+        return burst(emitter, count, 0);
+    }
+
+    static boolean burst(IEmitter emitter, int count, int startIndex) {
         if (count <= 0) return true;
 
         Particles particleEngine = getInstance();
@@ -337,7 +341,7 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             allocator = pair.one;
         }
 
-        allocator.allocateParticles(emitter, count, particleEngine.currentTime, particleEngine.engine.getViewport());
+        allocator.allocateParticles(emitter, count, startIndex, particleEngine.currentTime, particleEngine.engine.getViewport());
         return true;
     }
 
@@ -391,20 +395,25 @@ public class Particles extends BaseEveryFrameCombatPlugin {
             newParticlesPerBurst = particlesPerBurst;
             newBurstDelay = burstDelay;
         } else {
-            newParticlesPerBurst = (int) Math.floor(particlesPerSecond * minBurstDelay);
-            newBurstDelay = newParticlesPerBurst / particlesPerSecond;
+            newParticlesPerBurst = (int) Math.ceil(particlesPerSecond * minBurstDelay);
+            newBurstDelay = (int) Math.floor(particlesPerSecond * minBurstDelay) / particlesPerSecond;
         }
 
         final float startTime = instance.currentTime;
+        final int maxParticles = (int) (particlesPerSecond * maxDuration);
         doAtTime(new Action() {
             float lastBurstTime = startTime;
+            int index = 0;
             @Override
             public void perform() {
+                int burstAmount = Math.min(newParticlesPerBurst, maxParticles - index);
                 if (instance.currentTime <= startTime + maxDuration
+                        && burstAmount > 0
                         && (doBeforeGenerating == null || doBeforeGenerating.apply(emitter))
-                        && burst(emitter, newParticlesPerBurst)) {
+                        && burst(emitter, burstAmount, index)) {
                     doAtTime(this, lastBurstTime + newBurstDelay);
                     lastBurstTime += newBurstDelay;
+                    index += burstAmount;
                 }
             }
         }, startTime);

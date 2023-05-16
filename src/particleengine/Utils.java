@@ -71,6 +71,15 @@ public abstract class Utils {
         return res;
     }
 
+    /**
+     * Retrieves a sprite from the given file path, loading it into a texture if it doesn't already have a texture
+     * assigned. <br>
+     * Note: Sprites loaded in this manner are not loaded permanently; they are unloaded periodically in the
+     * campaign layer and at the start of each combat.
+     *
+     * @param loc File path relative to the starsector-core directory
+     * @return {@link SpriteAPI} object corresponding to the given file
+     */
     public static SpriteAPI getLoadedSprite(String loc) {
         if (loc == null) return null;
         SpriteAPI sprite = Global.getSettings().getSprite(loc);

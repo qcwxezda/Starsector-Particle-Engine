@@ -723,25 +723,25 @@ public class Emitter extends IEmitter {
         data.acceleration(newAcc);
 
         float newSinXAmplitude = Utils.randBetween(minSinXAmplitude, maxSinXAmplitude);
-        float newSinXFrequency = Utils.randBetween(minSinXFrequency, maxSinXFrequency) * twoPi;
-        float newSinXPhase = Utils.randBetween(minSinXPhase, maxSinXPhase) * Misc.RAD_PER_DEG;
+        float newSinXFrequency = Utils.randBetween(minSinXFrequency, maxSinXFrequency);
+        float newSinXPhase = Utils.randBetween(minSinXPhase, maxSinXPhase);
         data.sinusoidalXMotion(newSinXAmplitude, newSinXFrequency, newSinXPhase);
 
         float newSinYAmplitude = Utils.randBetween(minSinYAmplitude, maxSinYAmplitude);
-        float newSinYFrequency = Utils.randBetween(minSinYFrequency, maxSinYFrequency) * twoPi;
-        float newSinYPhase = Utils.randBetween(minSinYPhase, maxSinYPhase) * Misc.RAD_PER_DEG;
+        float newSinYFrequency = Utils.randBetween(minSinYFrequency, maxSinYFrequency);
+        float newSinYPhase = Utils.randBetween(minSinYPhase, maxSinYPhase);
         data.sinusoidalYMotion(newSinYAmplitude, newSinYFrequency, newSinYPhase);
 
-        float newTheta = Utils.randBetween(minTheta, maxTheta) * Misc.RAD_PER_DEG;
+        float newTheta = Utils.randBetween(minTheta, maxTheta);
         data.facing(newTheta);
-        float newW = Utils.randBetween(minW, maxW) * Misc.RAD_PER_DEG;
+        float newW = Utils.randBetween(minW, maxW);
         data.turnRate(newW);
-        float newAlpha = Utils.randBetween(minAlpha, maxAlpha) * Misc.RAD_PER_DEG;
+        float newAlpha = Utils.randBetween(minAlpha, maxAlpha);
         data.turnAcceleration(newAlpha);
 
-        float newRadialW = Utils.randBetween(minRadialW, maxRadialW) * Misc.RAD_PER_DEG;
+        float newRadialW = Utils.randBetween(minRadialW, maxRadialW);
         data.revolutionRate(newRadialW);
-        float newRadialAlpha = Utils.randBetween(minRadialAlpha, maxRadialAlpha) * Misc.RAD_PER_DEG;
+        float newRadialAlpha = Utils.randBetween(minRadialAlpha, maxRadialAlpha);
         data.revolutionAcceleration(newRadialAlpha);
 
         float[] newSizeDataX = new float[3];

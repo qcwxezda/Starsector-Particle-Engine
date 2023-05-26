@@ -60,6 +60,7 @@ public class ParticleData {
      * How long the particle will last.
      */
     float life = 1f;
+    static final float twoPi = 2f * (float) Math.PI;
 
     /**
      * Initializes a {@code ParticleData} with default properties.
@@ -297,16 +298,16 @@ public class ParticleData {
                 .put(acceleration.x)
                 .put(acceleration.y)
                 .put(sinXAmp)
-                .put(sinXFreq)
-                .put(sinXPhase)
+                .put(sinXFreq * twoPi)
+                .put(sinXPhase * Misc.RAD_PER_DEG)
                 .put(sinYAmp)
-                .put(sinYFreq)
-                .put(sinYPhase)
-                .put(facing)
-                .put(turnRate)
-                .put(turnAcceleration)
-                .put(revolutionRate)
-                .put(revolutionAcceleration)
+                .put(sinYFreq * twoPi)
+                .put(sinYPhase * Misc.RAD_PER_DEG)
+                .put(facing * Misc.RAD_PER_DEG)
+                .put(turnRate * Misc.RAD_PER_DEG)
+                .put(turnAcceleration * Misc.RAD_PER_DEG)
+                .put(revolutionRate * Misc.RAD_PER_DEG)
+                .put(revolutionAcceleration * Misc.RAD_PER_DEG)
                 .put(size.x)
                 .put(growthRate.x)
                 .put(growthAcceleration.x)

@@ -4,7 +4,7 @@
   "author":"qcwxezda",
   "version":"0.5",
   "description":"Library used for generation of stateless, instanced particles.",
-  "gameVersion": "0.96a-RC9",
+  "gameVersion": "0.96a-RC10",
   "utility": true,
   "jars": ["jars/ParticleEngine.jar"],
   "modPlugin":"particleengine.ParticleEngineModPlugin"

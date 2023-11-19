@@ -1,6 +1,7 @@
 package particleengine;
 
 import com.fs.starfarer.api.combat.ViewportAPI;
+import com.fs.starfarer.api.util.Pair;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.*;
 
@@ -18,6 +19,18 @@ class ParticleAllocator {
      * will reallocate the buffer.
      */
     static final float REFACTOR_FILL_FRACTION = 0.5f;
+    /**
+     * If an allocated cluster is compatible with the previous cluster in the buffer (that is, it dies earlier than the
+     * previous cluster's death time + {@code CLUSTER_DESTRUCTION_DELAY}), they will be merged.
+     * This will happen unless the previous cluster's size exceeds {@code MAX_COALESCE_SIZE},
+     * to avoid adversarial scenarios in which a single long-living particle gets merged with many short-lived particles,
+     * unnecessarily prolonging the life of all of those short-lived particles.
+     */
+    static final int MAX_COALESCE_SIZE = 512 * Particles.FLOATS_PER_PARTICLE;
+    /**
+     * Delay, in seconds, after the last particle in a cluster dies before that cluster is cleaned up.
+     */
+    static final float CLUSTER_DESTRUCTION_DELAY = 3f;
     int bufferSize = INITIAL_BUFFER_SIZE, bufferPosition = 0;
     SortedSet<AllocatedClusterData> allocatedClusters = new TreeSet<>();
     AllocatedClusterData lastAllocated = null;
@@ -58,11 +71,16 @@ class ParticleAllocator {
         int count = clusterData.sizeInFloats / Particles.FLOATS_PER_PARTICLE;
         particleCount += count;
         // See if we can merge this cluster with the previously generated one
+        int mergedSize;
         if (lastAllocated != null
-                && lastAllocated.generationTime == clusterData.generationTime
-                && lastAllocated.deathTime == clusterData.deathTime
+                && (mergedSize = lastAllocated.sizeInFloats + count*Particles.FLOATS_PER_PARTICLE) <= MAX_COALESCE_SIZE
+                && lastAllocated.deathTime + CLUSTER_DESTRUCTION_DELAY >= clusterData.deathTime
                 && lastAllocated.locationInBuffer + lastAllocated.sizeInFloats == clusterData.locationInBuffer) {
-            lastAllocated.updateSize(lastAllocated.sizeInFloats + count*Particles.FLOATS_PER_PARTICLE);
+            // This shouldn't be needed since generation time should always be current time,
+            // so lastAllocated 's generation time should always be smaller.
+            // But update the generation time just in case
+            lastAllocated.updateGenerationTime(Math.min(lastAllocated.generationTime, clusterData.generationTime));
+            lastAllocated.updateSize(mergedSize);
         }
         else {
             allocatedClusters.add(clusterData);
@@ -72,7 +90,7 @@ class ParticleAllocator {
                 public void perform() {
                     registerParticleDeath(clusterData);
                 }
-            }, clusterData.deathTime - clusterData.generationTime);
+            }, clusterData.deathTime - clusterData.generationTime + CLUSTER_DESTRUCTION_DELAY);
         }
     }
 
@@ -120,12 +138,13 @@ class ParticleAllocator {
     }
 
     void allocateParticles(IEmitter emitter, int count, int startIndex, float startTime, ViewportAPI viewport) {
-        FloatBuffer buffer = emitter.generate(count, startIndex, startTime, viewport);
-
-        // If buffer is null, that means the emitter was out of bounds and no particles should be generated
-        if (buffer == null) {
+        Pair<FloatBuffer, Float> bufferAndLife = emitter.generate(count, startIndex, startTime, viewport);
+        // If buffer data is null, that means the emitter was out of bounds and no particles should be generated
+        if (bufferAndLife == null) {
             return;
         }
+
+        FloatBuffer buffer = bufferAndLife.one;
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         long requiredSize = bufferPosition + buffer.limit();
@@ -171,13 +190,14 @@ class ParticleAllocator {
                         allocatedLocation,
                         count * Particles.FLOATS_PER_PARTICLE,
                         startTime,
-                        startTime + emitter.maxLife);
+                        startTime + bufferAndLife.two);
         registerParticleCreation(clusterData);
     }
 
     private static class AllocatedClusterData implements Comparable<AllocatedClusterData> {
         private int locationInBuffer, sizeInFloats;
-        private final float generationTime, deathTime;
+        private float generationTime;
+        private final float deathTime;
 
         private AllocatedClusterData(int locationInBuffer, int size, float generationTime, float deathTime) {
             this.locationInBuffer = locationInBuffer;
@@ -189,6 +209,8 @@ class ParticleAllocator {
         private void updateLocation(int newLocationInBuffer) {
             locationInBuffer = newLocationInBuffer;
         }
+
+        private void updateGenerationTime(float newGenerationTime) {generationTime = newGenerationTime;}
 
         private void updateSize(int newSize) {
             sizeInFloats = newSize;

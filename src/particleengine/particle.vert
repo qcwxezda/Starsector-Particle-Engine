@@ -1,30 +1,35 @@
 #version 330
 
+layout (location = 0) in float tracked_emitter_index;
 // first 2 are particle's location at t=0, last 2 are emitter's location
-layout (location = 0) in vec4 pos_emitter_pos;
-layout (location = 1) in float emitter_forward_dir;
+layout (location = 1) in vec4 pos_emitter_pos;
+layout (location = 2) in float emitter_forward_dir;
 // first 2 are velocity vector, last 2 are acceleration vector
-layout (location = 2) in vec4 vel_acc;
+layout (location = 3) in vec4 vel_acc;
 // amplitude, frequency, and phase of sinusoidal motion along global x axis
-layout (location = 3) in vec3 sinusoid_x;
+layout (location = 4) in vec3 sinusoid_x;
 // amplitude, frequency, and phase of sinusoidal motion along global y axis
-layout (location = 4) in vec3 sinusoid_y;
+layout (location = 5) in vec3 sinusoid_y;
 // elements are direction, angular velocity, and angular acceleration
-layout (location = 5) in vec3 angle_data;
+layout (location = 6) in vec3 angle_data;
 // circle the initial position with the given angular velocity and acceleration
-layout (location = 6) in vec2 radial_data;
+layout (location = 7) in vec2 radial_data;
 // elements are scale, growth rate, and growth acceleration
-layout (location = 7) in vec3 size_data_x;
-layout (location = 8) in vec3 size_data_y;
+layout (location = 8) in vec3 size_data_x;
+layout (location = 9) in vec3 size_data_y;
 // starting color and color shift are all in hsva
 // hue is in degrees
-layout (location = 9) in vec4 color_start;
-layout (location = 10) in vec4 color_shift;
+layout (location = 10) in vec4 color_start;
+layout (location = 11) in vec4 color_shift;
 // fade in, fade out, starting time, ending time
-layout (location = 11) in vec4 fade_time_data;
+layout (location = 12) in vec4 fade_time_data;
 
 uniform mat4 projection;
 uniform float time;
+
+layout (std140) uniform TrackedEmitters {
+  vec4 locations[1024];
+};
 
 const vec2 vert_locs[4] = vec2[] (
   vec2(0., 0.),
@@ -48,10 +53,16 @@ vec4 to_rgba(vec4 hsva) {
   return vec4(hsva_c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), hsva_c.y), hsva_c.w);
 }
 
+vec2 get_location(int index) {
+  int d = int(index / 2);
+  return locations[d].xy * ((index + 1) % 2) + locations[d].zw * (index % 2);
+}
+
 void main() {
   float lifetime = fade_time_data.w - fade_time_data.z;
   float elapsed = time - fade_time_data.z;
   vec2 emitter_pos = pos_emitter_pos.zw;
+  vec2 emitter_offset = tracked_emitter_index < 0 ? vec2(0, 0) : get_location(int(tracked_emitter_index)) - emitter_pos;
 
   float revolution_angle = elapsed*radial_data.x + 0.5f* elapsed*elapsed*radial_data.y;
 
@@ -60,6 +71,7 @@ void main() {
   // so that new_pos = pos at t = 0
   particle_pos -= vec2(sinusoid_x.x * sin(sinusoid_x.z), sinusoid_y.x * sin(sinusoid_y.z));
   particle_pos = rot_mat(revolution_angle + emitter_forward_dir) * (particle_pos - emitter_pos) + emitter_pos;
+  particle_pos += emitter_offset;
 
   float facing_angle = angle_data.x + elapsed*angle_data.y + 0.5f*elapsed*elapsed*angle_data.z;
   vec2 vert_loc = vert_locs[gl_VertexID];

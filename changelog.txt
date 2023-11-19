@@ -1,0 +1,46 @@
+0.6:
+
+- Added anchorEmitter to Particles, which automates the task of setting the emitter's location to a combat entity's location
+  each frame as well as destroying streams when the anchored-to combat entity leaves play.
+- Added the ability to dynamically anchor particles to their emitters, allowing them to track and follow changes
+  in their emitters' locations. Applied on a per-emitter basis, using enableDynamicAnchoring.
+  Useful for particles that are meant to follow a combat entity.
+  - Note: emitter locations are stored in a UBO. Due to buffer size limitations, a maximum of 2048 emitters' locations
+    can be tracked at a time. If more than 2048 emitters are being tracked, stale ones will start to be deleted. Use
+    disableDynamicAnchoring to free an emitter's slot in the buffer.
+- Added an optional doWhenFinished parameter when creating particle streams.
+- Particles.stream now takes a Float for maxDuration rather than a float -- set it to null to make a stream never expire
+  naturally.
+- Particles.stream should now more accurately handle particles per burst, particles per second, and total duration.
+- Optimized the particle allocation process a bit; should be less taxing on the CPU.
+- Fixed an issue where createCopy was overriding the copy's sprite and blend mode settings
+
+0.5:
+
+- Added new classes, IEmitter and BaseIEmitter, that may be extended to generate custom particle emitters.
+  Particles can now depend on each other's properties (prior to generation).
+- Generified Particles.StreamAction. Note: this will break implementations using StreamAction, to fix, replace all StreamAction with StreamAction<Emitter>.
+- Changed license, relevant for v0.5+
+
+0.4:
+
+- Updated Starsector version to 0.96a-RC6
+- Changed default out-of-bounds range from 100 to 500
+- Changed default particle layer to ABOVE_PARTICLES_LOWER
+- Added early exit on Particles.burst if number of particles is <= 0
+
+0.3:
+
+- Emitters now support CombatEngineLayers, layer can be set via Emitter.setLayer.
+- Added Emitter.setInactiveBorder. Emitters outside the screen by more than this amount of world units will ignore particle generation calls.
+
+0.2:
+
+- Added mod thread id to version file
+- Removed axis from json output (it's an emitter property, not a particle property)
+- Added changing of emitter sprite and blend mode via setters
+- Added setSyncSize to Emitter, which allows random particle sizes that are the same in the x and y directions (uses the x direction values)
+
+0.1:
+
+- Initial release

@@ -2,14 +2,11 @@ package particleengine;
 
 
 import com.fs.starfarer.api.combat.CombatEngineLayers;
-import com.fs.starfarer.api.combat.CombatEntityAPI;
-import com.fs.starfarer.api.combat.CombatLayeredRenderingPlugin;
-import com.fs.starfarer.api.combat.ViewportAPI;
 import org.lwjgl.opengl.*;
 
 import java.util.EnumSet;
 
-class ParticleRenderer implements CombatLayeredRenderingPlugin {
+class ParticleRenderer {
     final CombatEngineLayers layer;
     final EnumSet<CombatEngineLayers> activeLayers;
     final ParticleAllocator allocator;
@@ -23,38 +20,11 @@ class ParticleRenderer implements CombatLayeredRenderingPlugin {
         activeLayers = EnumSet.of(layer);
     }
 
-    @Override
-    public void init(CombatEntityAPI entity) {}
-
-    @Override
-    public void cleanup() {}
-
-    @Override
-    public boolean isExpired() {
-        return expired;
-    }
-
     void setExpired() {
         expired = true;
     }
 
-    @Override
-    public void advance(float v) {}
-
-    @Override
-    public EnumSet<CombatEngineLayers> getActiveLayers() {
-        return activeLayers;
-    }
-
-    @Override
-    public float getRenderRadius() {
-        return 1000000f;
-    }
-
-    @Override
-    public void render(CombatEngineLayers layer, ViewportAPI viewport) {
-        GL20.glUseProgram(ParticleShader.programId);
-        GL11.glEnable(GL11.GL_BLEND);
+    public void render() {
         ParticleType type = allocator.type;
         GL11.glBlendFunc(type.sfactor, type.dfactor);
         GL14.glBlendEquation(type.blendMode);
@@ -65,8 +35,6 @@ class ParticleRenderer implements CombatLayeredRenderingPlugin {
             GL20.glUniform1i(ParticleShader.texSamplerLoc, target);
         }
         GL30.glBindVertexArray(allocator.vao);
-        GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));
-        GL20.glUniform1f(ParticleShader.timeLoc, owner.currentTime);
         GL20.glUniform1i(ParticleShader.useTextureLoc, type.sprite == null ? 0 : 1);
         GL31.glDrawArraysInstanced(
                 GL11.GL_TRIANGLE_STRIP,
@@ -77,8 +45,5 @@ class ParticleRenderer implements CombatLayeredRenderingPlugin {
         if (type.sprite != null) {
             GL13.glActiveTexture(GL13.GL_TEXTURE0);
         }
-        GL14.glBlendEquation(GL14.GL_FUNC_ADD);
-        GL11.glDisable(GL11.GL_BLEND);
-        GL20.glUseProgram(0);
     }
 }

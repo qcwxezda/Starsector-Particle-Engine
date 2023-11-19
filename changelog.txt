@@ -1,3 +1,10 @@
+0.62:
+
+- Fixed an issue where dynamically tracked particles could be jittery on their first frame.
+- Fixed a bug where the wrong emitters were being evicted when the tracked emitter buffer was full.
+- Greatly optimized the tracked emitter buffer handler. It now no longer holds on to stale emitters longer than necessary
+  and only binds the UBO data each frame up to its maximum used index.
+
 0.61:
 
 - Hotfix a crash when doWhenFinished is null

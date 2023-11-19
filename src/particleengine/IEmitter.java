@@ -13,6 +13,7 @@ import java.nio.FloatBuffer;
 public abstract class IEmitter {
     protected float lastParticleDeathTime = 0f;
     protected int indexInTracker = -1;
+    protected boolean isDynamic = false;
 
     /**
      * @return Absolute location of this emitter, in world coordinates.
@@ -70,22 +71,21 @@ public abstract class IEmitter {
      */
     @SuppressWarnings("unused")
     public final void enableDynamicAnchoring() {
-        if (indexInTracker == -1) {
-            indexInTracker = EmitterBufferHandler.trackEmitter(this);
-        }
+        isDynamic = true;
     }
 
     @SuppressWarnings("unused")
     public final void disableDynamicAnchoring() {
-        if (indexInTracker == -1) return;
-        final int indexToFree = indexInTracker;
+        isDynamic = false;
+        untrack();
+    }
+
+    protected final int getIndexInTracker() {
+        return indexInTracker;
+    }
+
+    protected final void untrack() {
         indexInTracker = -1;
-        Particles.doAtTime(new Particles.Action() {
-            @Override
-            public void perform() {
-                EmitterBufferHandler.freeEmitter(indexToFree);
-            }
-        }, lastParticleDeathTime);
     }
 
     /**
@@ -101,6 +101,12 @@ public abstract class IEmitter {
     protected final Pair<FloatBuffer, Float> generate(int count, int startIndex, float startTime, ViewportAPI viewport) {
         if (!Utils.isInViewport(getLocation(), viewport, getRenderRadius())) {
             return null;
+        }
+        if (isDynamic && indexInTracker == -1) {
+            EmitterBufferHandler bufferHandler = Particles.getTrackedEmitterHandler();
+            if (bufferHandler != null) {
+                indexInTracker = bufferHandler.trackEmitter(this);
+            }
         }
         FloatBuffer buffer = BufferUtils.createFloatBuffer(count * Particles.FLOATS_PER_PARTICLE);
         float maxLife = 0f;

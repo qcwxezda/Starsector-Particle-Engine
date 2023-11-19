@@ -142,17 +142,20 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
     }
 
     @Override
-    public void advance(float amount) {
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getBufferIndex());
-        FloatBuffer ubo = trackedEmitterHandler.locationsToFloatBuffer();
-        if (ubo != null) {
-            GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, ubo, GL15.GL_DYNAMIC_DRAW);
-        }
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
-    }
+    public void advance(float amount) {}
 
     @Override
     public void render(CombatEngineLayers layer, ViewportAPI viewport) {
+        // Only need to bind the buffer data once per frame
+        if (CombatEngineLayers.BELOW_PLANETS.equals(layer)) {
+            trackedEmitterHandler.updateTrackedEmitters(currentTime);
+            GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getUboBufferIndex());
+            FloatBuffer ubo = trackedEmitterHandler.locationsToFloatBuffer();
+            ubo.limit(2*trackedEmitterHandler.getHighestFilledPosition() + 2);
+            GL15.glBufferSubData(GL31.GL_UNIFORM_BUFFER, 0, ubo);
+            ubo.limit(ubo.capacity());
+            GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
+        }
         GL20.glUseProgram(ParticleShader.programId);
         GL11.glEnable(GL11.GL_BLEND);
         GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));

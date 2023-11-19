@@ -17,78 +17,80 @@ class EmitterBufferHandler {
     /** Fraction of most stale emitters to remove when the buffer is full. */
     static final float REMOVE_WHEN_FULL_FRAC = 0.5f;
     final PriorityQueue<Integer> freePositions = new PriorityQueue<>();
-    final Set<Integer> filledPositions = new HashSet<>();
+    final SortedSet<Integer> filledPositions = new TreeSet<>(Collections.reverseOrder());
     final IEmitter[] trackedEmitters = new IEmitter[MAX_BUFFER_SIZE];
-    final int bufferIndex;
+    final int uboBufferIndex;
+    final FloatBuffer emitterLocations;
 
     EmitterBufferHandler() {
         for (int i = 0; i < MAX_BUFFER_SIZE; i++) {
             freePositions.add(i);
         }
 
-        bufferIndex = GL15.glGenBuffers();
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, bufferIndex);
-        FloatBuffer initialBuffer = BufferUtils.createFloatBuffer(2*MAX_BUFFER_SIZE);
-        GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, initialBuffer, GL15.GL_DYNAMIC_DRAW);
-        GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, ParticleShader.emitterUniformBlockBinding, bufferIndex);
+        uboBufferIndex = GL15.glGenBuffers();
+        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, uboBufferIndex);
+        emitterLocations = BufferUtils.createFloatBuffer(2*MAX_BUFFER_SIZE);
+        GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, emitterLocations, GL15.GL_DYNAMIC_DRAW);
+        GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, ParticleShader.emitterUniformBlockBinding, uboBufferIndex);
         GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
     }
 
-    static void freeEmitter(int index) {
-        final EmitterBufferHandler instance = Particles.getTrackedEmitterHandler();
-        if (instance == null) return;
-        if (index < 0) return;
+    void updateTrackedEmitters(float currentTime) {
+        for (Iterator<Integer> iterator = filledPositions.iterator(); iterator.hasNext(); ) {
+            int i = iterator.next();
+            IEmitter emitter = trackedEmitters[i];
+            Vector2f emitterLocation = emitter.getLocation();
+            emitterLocations.put(2 * i, emitterLocation.x);
+            emitterLocations.put(2 * i + 1, emitterLocation.y);
 
-        instance.filledPositions.remove(index);
-        instance.freePositions.add(index);
+            // Check if the emitter is dead
+            if (emitter.lastParticleDeathTime < currentTime) {
+                emitter.untrack();
+                freePositions.add(i);
+                iterator.remove();
+            }
+        }
     }
 
-    static int trackEmitter(IEmitter emitter) {
-        final EmitterBufferHandler instance = Particles.getTrackedEmitterHandler();
-        if (instance == null) return -1;
-
-        if (instance.freePositions.isEmpty()) {
+    int trackEmitter(IEmitter emitter) {
+        if (freePositions.isEmpty()) {
             // No free slots are available, we have to remove some emitters
             // Sort by staleness -- last particle death time
-            List<Integer> sortedFilledPositions = new ArrayList<>(instance.filledPositions);
+            List<Integer> sortedFilledPositions = new ArrayList<>(filledPositions);
             Collections.sort(sortedFilledPositions, new Comparator<Integer>() {
                 @Override
                 public int compare(Integer a, Integer b) {
                     return Float.compare(
-                            instance.trackedEmitters[a].lastParticleDeathTime,
-                            instance.trackedEmitters[b].lastParticleDeathTime);
+                            trackedEmitters[a].lastParticleDeathTime,
+                            trackedEmitters[b].lastParticleDeathTime);
                 }
             });
 
-            int numToRemove = (int) (REMOVE_WHEN_FULL_FRAC *  sortedFilledPositions.size());
+            int numToRemove = (int) Math.ceil(REMOVE_WHEN_FULL_FRAC *  sortedFilledPositions.size());
             for (int i = 0; i < numToRemove; i++) {
-                instance.filledPositions.remove(i);
-                instance.freePositions.add(i);
+                int j = sortedFilledPositions.get(i);
+                filledPositions.remove(j);
+                freePositions.add(j);
             }
         }
 
-        int index = instance.freePositions.remove();
-        instance.filledPositions.add(index);
-        instance.trackedEmitters[index] = emitter;
+        int index = freePositions.remove();
+        filledPositions.add(index);
+        trackedEmitters[index] = emitter;
 
         return index;
     }
 
-    int getBufferIndex() {
-        EmitterBufferHandler instance = Particles.getTrackedEmitterHandler();
-        return instance == null ? 0 : instance.bufferIndex;
+    int getHighestFilledPosition() {
+        if (filledPositions.isEmpty()) return -1;
+        return filledPositions.iterator().next();
+    }
+
+    int getUboBufferIndex() {
+        return uboBufferIndex;
     }
 
     FloatBuffer locationsToFloatBuffer() {
-        EmitterBufferHandler instance = Particles.getTrackedEmitterHandler();
-        if (instance == null) return null;
-
-        FloatBuffer buffer = BufferUtils.createFloatBuffer(2*MAX_BUFFER_SIZE);
-        for (int i : instance.filledPositions) {
-            Vector2f emitterLocation = instance.trackedEmitters[i].getLocation();
-            buffer.put(2 * i, emitterLocation.x);
-            buffer.put(2 * i + 1, emitterLocation.y);
-        }
-        return buffer;
+        return emitterLocations;
     }
 }

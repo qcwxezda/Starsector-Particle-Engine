@@ -453,7 +453,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
         return true;
     }
 
-    /** Action that can be performed before each generation in a {@link #stream(IEmitter, int, float, Float, StreamAction)} call. */
+    /** Action that can be performed before each generation in a {@link #stream(IEmitter, int, float, float, StreamAction)} call. */
     public interface StreamAction<T extends IEmitter> {
         /**
          * @param emitter {@link IEmitter} that is about to generate particles.
@@ -468,11 +468,12 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
      * @param emitter {@link IEmitter} to use.
      * @param particlesPerBurst Number of particles that should be generated at once.
      * @param particlesPerSecond Total number of particles generated per second.
-     * @param duration Amount of time this particle stream should last. If {@code null}, the stream will never expire.
+     * @param duration Amount of time this particle stream should last. If negative, the stream will never expire.
      */
-    public static void stream(final IEmitter emitter, int particlesPerBurst, float particlesPerSecond, @Nullable Float duration) {
+    public static void stream(final IEmitter emitter, int particlesPerBurst, float particlesPerSecond, float duration) {
         stream(emitter, particlesPerBurst, particlesPerSecond, duration, null);
     }
+
 
     /**
      *  Generates a continuous stream of particles.
@@ -480,7 +481,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
      * @param emitter {@link IEmitter} to use.
      * @param particlesPerBurst Number of particles that should be generated at once.
      * @param particlesPerSecond Total number of particles generated per second.
-     * @param maxDuration Maximum amount of time this particle stream should last. If {@code null}, the stream
+     * @param maxDuration Maximum amount of time this particle stream should last. If negative, the stream
      *                    will not naturally expire.
      * @param doBeforeGenerating Custom function that's called immediately before each particle generation sequence in this stream.
      *                           Returning {@code false} will end the stream.
@@ -489,7 +490,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
             final T emitter,
             int particlesPerBurst,
             float particlesPerSecond,
-            @Nullable Float maxDuration,
+            float maxDuration,
             @Nullable StreamAction<T> doBeforeGenerating) {
         final Particles instance = getInstance();
         if (instance == null) {
@@ -535,7 +536,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
      * @param emitter {@link IEmitter} to use.
      * @param particlesPerBurst Number of particles that should be generated at once.
      * @param particlesPerSecond Total number of particles generated per second.
-     * @param maxDuration Maximum amount of time this particle stream should last. If {@code null}, the stream
+     * @param maxDuration Maximum amount of time this particle stream should last. If negative, the stream
      *                    will not naturally expire.
      * @param doBeforeGenerating Custom function that's called immediately before each particle generation sequence in this stream.
      *                           Returning {@code false} will end the stream.
@@ -547,7 +548,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
             final T emitter,
             int particlesPerBurst,
             float particlesPerSecond,
-            @Nullable Float maxDuration,
+            float maxDuration,
             @Nullable StreamAction<T> doBeforeGenerating,
             @Nullable StreamAction<T> doWhenFinished) {
         final Particles instance = getInstance();
@@ -559,7 +560,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
                 emitter,
                 particlesPerBurst,
                 particlesPerSecond,
-                maxDuration == null ? null : instance.currentTime + maxDuration,
+                maxDuration < 0 ? null : instance.currentTime + maxDuration,
                 doBeforeGenerating,
                 doWhenFinished
         ));

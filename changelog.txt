@@ -1,3 +1,10 @@
+0.61:
+
+- Hotfix a crash when doWhenFinished is null
+- Fixed an issue where streams were finishing when they weren't supposed to
+- Fixed an issue where streams would no longer generate more than 1 burst per frame
+- Changed maxDuration in Particles.stream back to float from Float, set to negative value to never expire
+
 0.6:
 
 - Added anchorEmitter to Particles, which automates the task of setting the emitter's location to a combat entity's location

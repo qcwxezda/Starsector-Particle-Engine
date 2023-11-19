@@ -28,7 +28,7 @@ class ParticleStream<T extends IEmitter> {
 
     void advance(float amount) {
         currentCount += amount * particlesPerSecond;
-        if (currentCount >= particlesPerBurst && (doBeforeGenerating == null || (finished = doBeforeGenerating.apply(emitter)))) {
+        while (currentCount >= particlesPerBurst && (doBeforeGenerating == null || !(finished = !doBeforeGenerating.apply(emitter)))) {
             Particles.burst(emitter, particlesPerBurst, currentIndex);
             currentIndex += particlesPerBurst;
             currentCount -= particlesPerBurst;
@@ -36,6 +36,8 @@ class ParticleStream<T extends IEmitter> {
     }
 
     void finish() {
-        doWhenFinished.apply(emitter);
+        if (doWhenFinished != null) {
+            doWhenFinished.apply(emitter);
+        }
     }
 }

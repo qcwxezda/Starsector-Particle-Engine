@@ -19,20 +19,23 @@ class EmitterBufferHandler {
     final PriorityQueue<Integer> freePositions = new PriorityQueue<>();
     final SortedSet<Integer> filledPositions = new TreeSet<>(Collections.reverseOrder());
     final IEmitter[] trackedEmitters = new IEmitter[MAX_BUFFER_SIZE];
-    final int uboBufferIndex;
-    final FloatBuffer emitterLocations;
+    static final int uboBufferIndex;
+    static final FloatBuffer emitterLocations;
 
-    EmitterBufferHandler() {
-        for (int i = 0; i < MAX_BUFFER_SIZE; i++) {
-            freePositions.add(i);
-        }
-
+    static {
         uboBufferIndex = GL15.glGenBuffers();
         GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, uboBufferIndex);
         emitterLocations = BufferUtils.createFloatBuffer(2*MAX_BUFFER_SIZE);
         GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, emitterLocations, GL15.GL_DYNAMIC_DRAW);
         GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, ParticleShader.emitterUniformBlockBinding, uboBufferIndex);
         GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
+    }
+
+    EmitterBufferHandler() {
+        for (int i = 0; i < MAX_BUFFER_SIZE; i++) {
+            freePositions.add(i);
+        }
+
     }
 
     void updateTrackedEmitters(float currentTime) {

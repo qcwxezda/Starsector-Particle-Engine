@@ -146,6 +146,8 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
 
     @Override
     public void render(CombatEngineLayers layer, ViewportAPI viewport) {
+        GL20.glUseProgram(ParticleShader.programId);
+        GL11.glEnable(GL11.GL_BLEND);
         // Only need to bind the buffer data once per frame
         if (CombatEngineLayers.BELOW_PLANETS.equals(layer)) {
             trackedEmitterHandler.updateTrackedEmitters(currentTime);
@@ -154,10 +156,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
             ubo.limit(2*trackedEmitterHandler.getHighestFilledPosition() + 2);
             GL15.glBufferSubData(GL31.GL_UNIFORM_BUFFER, 0, ubo);
             ubo.limit(ubo.capacity());
-            GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
         }
-        GL20.glUseProgram(ParticleShader.programId);
-        GL11.glEnable(GL11.GL_BLEND);
         GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));
         GL20.glUniform1f(ParticleShader.timeLoc, currentTime);
         for (Pair<ParticleAllocator, ParticleRenderer> p : particleMap.values()) {
@@ -195,12 +194,12 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
     /** This is done automatically and should not be manually called. */
     @Override
     public void init(final CombatEngineAPI engine) {
+        clearBuffers();
         this.engine = engine;
         currentTime = 0f;
         trackedEmitterHandler = new EmitterBufferHandler();
         engine.addLayeredRenderingPlugin(this);
         engine.getCustomData().put(customDataKey, this);
-        clearBuffers();
     }
 
     static EmitterBufferHandler getTrackedEmitterHandler() {

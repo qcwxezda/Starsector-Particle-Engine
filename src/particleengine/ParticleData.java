@@ -289,7 +289,7 @@ public class ParticleData {
     final void addToFloatBuffer(IEmitter emitter, float startTime, FloatBuffer buffer) {
         Vector2f emitterLocation = emitter.getLocation();
         Vector2f absolutePosition = new Vector2f(emitterLocation.x + offset.x, emitterLocation.y + offset.y);
-        buffer.put(emitter.getIndexInTracker())
+        buffer.put(emitter.getIndexInTracker() + 0.5f)
             .put(absolutePosition.x)
             .put(absolutePosition.y)
             .put(emitterLocation.x)

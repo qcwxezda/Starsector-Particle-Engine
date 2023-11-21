@@ -33,7 +33,9 @@ public abstract class BaseIEmitter extends IEmitter {
     }
 
     @Override
-    protected void preInitParticles(int startingIndex) {}
+    protected boolean preInitParticles(int startingIndex) {
+        return true;
+    }
 
     @Override
     public int getBlendDestinationFactor() {

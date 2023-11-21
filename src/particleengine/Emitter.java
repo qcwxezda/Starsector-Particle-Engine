@@ -690,7 +690,9 @@ public class Emitter extends IEmitter {
     }
 
     @Override
-    protected void preInitParticles(int startingIndex) {}
+    protected boolean preInitParticles(int startingIndex) {
+        return true;
+    }
 
     @Override
     protected ParticleData initParticle(int id) {

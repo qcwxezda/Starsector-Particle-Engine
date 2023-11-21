@@ -62,9 +62,10 @@ public abstract class IEmitter {
      *  in a burst are generated at the same time, so this function may be used to pre-compute values that
      *  won't be changed throughout a burst.
      *
-     *  @param startingIndex the index of first particle that is about to be generated in the incoming burst
+     *  @param startingIndex the index of first particle that is about to be generated in the incoming burst.
+     *  @return whether to proceed with particle generation. If false, particles in the incoming burst are cancelled.
      */
-    protected abstract void preInitParticles(int startingIndex);
+    protected abstract boolean preInitParticles(int startingIndex);
 
     /**
      * Construct parameters for a particle. Doesn't actually generate the particle. Use {@link Particles#burst}
@@ -111,6 +112,9 @@ public abstract class IEmitter {
         if (!Utils.isInViewport(getLocation(), viewport, getRenderRadius())) {
             return null;
         }
+        if (!preInitParticles(startIndex)) {
+            return null;
+        }
         if (isDynamic && indexInTracker == -1) {
             EmitterBufferHandler bufferHandler = Particles.getTrackedEmitterHandler();
             if (bufferHandler != null) {
@@ -119,7 +123,6 @@ public abstract class IEmitter {
         }
         FloatBuffer buffer = BufferUtils.createFloatBuffer(count * Particles.FLOATS_PER_PARTICLE);
         float maxLife = 0f;
-        preInitParticles(startIndex);
         for (int i = 0; i < count; i++) {
             ParticleData data = initParticle(startIndex + i);
             if (data != null) {

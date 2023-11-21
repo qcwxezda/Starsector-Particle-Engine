@@ -1,3 +1,8 @@
+0.7:
+
+- Added preInitParticles, which is called only once per burst and can be used to avoid re-computation.
+- Removed multiple extraneous getLocation calls when adding particle data to a float buffer
+
 0.62:
 
 - Fixed an issue where dynamically tracked particles could be jittery on their first frame.

@@ -690,6 +690,9 @@ public class Emitter extends IEmitter {
     }
 
     @Override
+    protected void preInitParticles(int startingIndex) {}
+
+    @Override
     protected ParticleData initParticle(int id) {
         ParticleData data = new ParticleData();
         float twoPi = 2f * (float) Math.PI;

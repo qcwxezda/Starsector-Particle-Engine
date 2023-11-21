@@ -33,6 +33,9 @@ public abstract class BaseIEmitter extends IEmitter {
     }
 
     @Override
+    protected void preInitParticles(int startingIndex) {}
+
+    @Override
     public int getBlendDestinationFactor() {
         return GL11.GL_ONE;
     }

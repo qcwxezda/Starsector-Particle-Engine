@@ -141,6 +141,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
         return 999999999f;
     }
 
+
     @Override
     public void advance(float amount) {}
 
@@ -148,25 +149,31 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
     public void render(CombatEngineLayers layer, ViewportAPI viewport) {
         GL20.glUseProgram(ParticleShader.programId);
         GL11.glEnable(GL11.GL_BLEND);
-        // Only need to bind the buffer data once per frame
         if (CombatEngineLayers.BELOW_PLANETS.equals(layer)) {
             trackedEmitterHandler.updateTrackedEmitters(currentTime);
-            GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getUboBufferIndex());
-            FloatBuffer ubo = trackedEmitterHandler.locationsToFloatBuffer();
-            ubo.limit(2*trackedEmitterHandler.getHighestFilledPosition() + 2);
-            GL15.glBufferSubData(GL31.GL_UNIFORM_BUFFER, 0, ubo);
-            ubo.limit(ubo.capacity());
+            fillUniformBuffer();
         }
         GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));
         GL20.glUniform1f(ParticleShader.timeLoc, currentTime);
+        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getUboBufferIndex());
         for (Pair<ParticleAllocator, ParticleRenderer> p : particleMap.values()) {
             if (p.two.layer.equals(layer)) {
                 p.two.render();
             }
         }
+        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
         GL14.glBlendEquation(GL14.GL_FUNC_ADD);
         GL11.glDisable(GL11.GL_BLEND);
         GL20.glUseProgram(0);
+    }
+
+    private void fillUniformBuffer() {
+        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getUboBufferIndex());
+        FloatBuffer ubo = trackedEmitterHandler.locationsToFloatBuffer();
+        ubo.limit(4*trackedEmitterHandler.getHighestFilledPosition() + 4);
+        GL15.glBufferSubData(GL31.GL_UNIFORM_BUFFER, 0, ubo);
+        ubo.limit(ubo.capacity());
+        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
     }
 
     static void removeType(ParticleType type) {

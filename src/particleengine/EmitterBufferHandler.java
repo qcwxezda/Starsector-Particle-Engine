@@ -1,5 +1,6 @@
 package particleengine;
 
+import com.fs.starfarer.api.util.Misc;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
@@ -10,9 +11,9 @@ import java.nio.FloatBuffer;
 import java.util.*;
 
 class EmitterBufferHandler {
-    /** Should be twice the size of {@code locations} in {@code particle.vert}.
+    /** Should equal the size of {@code locations} in {@code particle.vert}.
      *  Specified in number of emitters, each of which needs two floats of storage. */
-    static final int MAX_BUFFER_SIZE = 2048;
+    static final int MAX_BUFFER_SIZE = 1024;
 
     /** Fraction of most stale emitters to remove when the buffer is full. */
     static final float REMOVE_WHEN_FULL_FRAC = 0.5f;
@@ -25,7 +26,7 @@ class EmitterBufferHandler {
     static {
         uboBufferIndex = GL15.glGenBuffers();
         GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, uboBufferIndex);
-        emitterLocations = BufferUtils.createFloatBuffer(2*MAX_BUFFER_SIZE);
+        emitterLocations = BufferUtils.createFloatBuffer(4*MAX_BUFFER_SIZE);
         GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, emitterLocations, GL15.GL_DYNAMIC_DRAW);
         GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, ParticleShader.emitterUniformBlockBinding, uboBufferIndex);
         GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
@@ -35,7 +36,6 @@ class EmitterBufferHandler {
         for (int i = 0; i < MAX_BUFFER_SIZE; i++) {
             freePositions.add(i);
         }
-
     }
 
     void updateTrackedEmitters(float currentTime) {
@@ -43,8 +43,9 @@ class EmitterBufferHandler {
             int i = iterator.next();
             IEmitter emitter = trackedEmitters[i];
             Vector2f emitterLocation = emitter.getLocation();
-            emitterLocations.put(2 * i, emitterLocation.x);
-            emitterLocations.put(2 * i + 1, emitterLocation.y);
+            emitterLocations.put(4 * i, emitterLocation.x);
+            emitterLocations.put(4 * i + 1, emitterLocation.y);
+            emitterLocations.put(4 * i + 2, emitter.getXDir() * Misc.RAD_PER_DEG);
 
             // Check if the emitter is dead
             if (emitter.lastParticleDeathTime < currentTime) {

@@ -54,16 +54,12 @@ vec4 to_rgba(vec4 hsva) {
   return vec4(hsva_c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), hsva_c.y), hsva_c.w);
 }
 
-vec2 get_location(int index) {
-  int d = int(index / 2);
-  return locations[d].xy * ((index + 1) % 2) + locations[d].zw * (index % 2);
-}
-
 void main() {
   float lifetime = fade_time_data.w - fade_time_data.z;
   float elapsed = time - fade_time_data.z;
-  vec2 emitter_pos = pos_emitter_pos.zw;
-  vec2 emitter_offset = tracked_emitter_index < 0 ? vec2(0, 0) : get_location(int(tracked_emitter_index)) - emitter_pos;
+  vec4 tracked_emitter_data = locations[int(tracked_emitter_index)];
+  vec2 emitter_pos = tracked_emitter_index < 0 ? pos_emitter_pos.zw : tracked_emitter_data.xy;
+  float emitter_xdir = tracked_emitter_index < 0 ? emitter_forward_dir : tracked_emitter_data.z;
 
   float revolution_angle = elapsed*radial_data.x + 0.5f* elapsed*elapsed*radial_data.y;
 
@@ -71,13 +67,12 @@ void main() {
   particle_pos += vec2(sinusoid_x.x * sin(sinusoid_x.y * elapsed + sinusoid_x.z), sinusoid_y.x * sin(sinusoid_y.y * elapsed + sinusoid_y.z));
   // so that new_pos = pos at t = 0
   particle_pos -= vec2(sinusoid_x.x * sin(sinusoid_x.z), sinusoid_y.x * sin(sinusoid_y.z));
-  particle_pos = rot_mat(revolution_angle + emitter_forward_dir) * (particle_pos - emitter_pos) + emitter_pos;
-  particle_pos += emitter_offset;
+  particle_pos = rot_mat(revolution_angle + emitter_xdir) * particle_pos + emitter_pos;
 
   float facing_angle = angle_data.x + elapsed*angle_data.y + 0.5f*elapsed*elapsed*angle_data.z;
   vec2 vert_loc = vert_locs[gl_VertexID];
   vec2 size = vec2(size_data_x.x + elapsed*size_data_x.y + 0.5f*elapsed*elapsed*size_data_x.z, size_data_y.x + elapsed*size_data_y.y + 0.5*elapsed*elapsed*size_data_y.z);
-  vec2 vert_pos = rot_mat(facing_angle + emitter_forward_dir) * (size*vert_loc - size/2.f);
+  vec2 vert_pos = rot_mat(facing_angle + emitter_xdir) * (size*vert_loc - size/2.f);
 
   gl_Position = projection * vec4(vert_pos.x + particle_pos.x, vert_pos.y + particle_pos.y, 1.f, 1.f);
 

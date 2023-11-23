@@ -26,6 +26,7 @@ layout (location = 12) in vec4 fade_time_data;
 
 uniform mat4 projection;
 uniform float time;
+uniform vec2 textureScale;
 
 layout (std140) uniform TrackedEmitters {
   vec4 locations[1024];
@@ -80,7 +81,7 @@ void main() {
 
   gl_Position = projection * vec4(vert_pos.x + particle_pos.x, vert_pos.y + particle_pos.y, 1.f, 1.f);
 
-  tex_coord = vert_loc;
+  tex_coord = vert_loc * textureScale;
 
   float alpha = min(1.f / fade_time_data.x * elapsed, min(1.f, lifetime / fade_time_data.y - elapsed / fade_time_data.y));
   vec4 dead_color = vec4(0.f, 0.f, 0.f, 0.f);

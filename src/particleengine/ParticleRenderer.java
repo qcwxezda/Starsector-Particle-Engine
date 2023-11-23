@@ -33,6 +33,10 @@ class ParticleRenderer {
             GL13.glActiveTexture(GL13.GL_TEXTURE0 + target);
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, type.sprite.getTextureId());
             GL20.glUniform1i(ParticleShader.texSamplerLoc, target);
+            GL20.glUniform2f(ParticleShader.textureSizeLoc, type.sprite.getTextureWidth(), type.sprite.getTextureHeight());
+        }
+        else {
+            GL20.glUniform2f(ParticleShader.textureSizeLoc, 1f, 1f);
         }
         GL30.glBindVertexArray(allocator.vao);
         GL20.glUniform1i(ParticleShader.useTextureLoc, type.sprite == null ? 0 : 1);

@@ -11,17 +11,12 @@ class ParticleRenderer {
     final EnumSet<CombatEngineLayers> activeLayers;
     final ParticleAllocator allocator;
     final Particles owner;
-    boolean expired = false;
 
     ParticleRenderer(CombatEngineLayers layer, ParticleAllocator allocator, Particles owner) {
         this.layer = layer;
         this.allocator = allocator;
         this.owner = owner;
         activeLayers = EnumSet.of(layer);
-    }
-
-    void setExpired() {
-        expired = true;
     }
 
     public void render() {

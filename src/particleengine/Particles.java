@@ -57,7 +57,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
     float currentTime;
     static final float minBurstDelay = 1f / 60f;
     private static final String customDataKey = "particleengine_ParticlesPlugin";
-    private final Map<ParticleType, Pair<ParticleAllocator, ParticleRenderer>> particleMap = new HashMap<>();
+    private final Map<CombatEngineLayers, SortedMap<ParticleType, Pair<ParticleAllocator, ParticleRenderer>>> particleMap = new HashMap<>();
     private final Queue<DeferredAction> doLaterQueue = new PriorityQueue<>();
     private final Set<ParticleStream<? extends IEmitter>> particleStreams = new HashSet<>();
     private final Map<IEmitter, CombatEntityAPI> anchorPoints = new HashMap<>();
@@ -156,9 +156,11 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
         GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));
         GL20.glUniform1f(ParticleShader.timeLoc, currentTime);
         GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getUboBufferIndex());
-        for (Pair<ParticleAllocator, ParticleRenderer> p : particleMap.values()) {
-            if (p.two.layer.equals(layer)) {
-                p.two.render();
+        if (particleMap.containsKey(layer)) {
+            for (Pair<ParticleAllocator, ParticleRenderer> p : particleMap.get(layer).values()) {
+                if (p.two.layer.equals(layer)) {
+                    p.two.render();
+                }
             }
         }
         GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
@@ -182,7 +184,12 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
             return;
         }
 
-        Pair<ParticleAllocator, ParticleRenderer> pair = instance.particleMap.get(type);
+        if (!instance.particleMap.containsKey(type.layer)) {
+            return;
+        }
+
+        Map<ParticleType, Pair<ParticleAllocator, ParticleRenderer>> subMap = instance.particleMap.get(type.layer);
+        Pair<ParticleAllocator, ParticleRenderer> pair = subMap.get(type);
         if (pair == null) {
             return;
         }
@@ -192,10 +199,11 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
 
         GL15.glDeleteBuffers(allocator.vbo);
         GL30.glDeleteVertexArrays(allocator.vao);
-        renderer.setExpired();
-        instance.engine.removeObject(renderer);
 
-        instance.particleMap.remove(type);
+        subMap.remove(type);
+        if (subMap.isEmpty()) {
+            instance.particleMap.remove(type.layer);
+        }
     }
 
     /** This is done automatically and should not be manually called. */
@@ -433,8 +441,8 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
     static boolean burst(IEmitter emitter, int count, int startIndex) {
         if (count <= 0) return true;
 
-        Particles particleEngine = getInstance();
-        if (particleEngine == null) {
+        Particles instance = getInstance();
+        if (instance == null) {
             return false;
         }
 
@@ -444,7 +452,13 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
                 emitter.getBlendDestinationFactor(),
                 emitter.getBlendFunc(),
                 emitter.getLayer());
-        Pair<ParticleAllocator, ParticleRenderer> pair = particleEngine.particleMap.get(type);
+
+        SortedMap<ParticleType, Pair<ParticleAllocator, ParticleRenderer>> subMap = instance.particleMap.get(type.layer);
+        if (subMap == null) {
+            subMap = new TreeMap<>();
+            instance.particleMap.put(type.layer, subMap);
+        }
+        Pair<ParticleAllocator, ParticleRenderer> pair = subMap.get(type);
 
         ParticleAllocator allocator;
         if (pair == null) {
@@ -452,13 +466,13 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
             ParticleRenderer renderer = new ParticleRenderer(
                     emitter.getLayer(),
                     allocator,
-                    particleEngine);
-            particleEngine.particleMap.put(type, new Pair<>(allocator, renderer));
+                    instance);
+            subMap.put(type, new Pair<>(allocator, renderer));
         } else {
             allocator = pair.one;
         }
 
-        allocator.allocateParticles(emitter, count, startIndex, particleEngine.currentTime, particleEngine.engine.getViewport());
+        allocator.allocateParticles(emitter, count, startIndex, instance.currentTime, instance.engine.getViewport());
         return true;
     }
 
@@ -506,37 +520,6 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
             return;
         }
         stream(emitter, particlesPerBurst, particlesPerSecond, maxDuration, doBeforeGenerating, null);
-
-//        final int newParticlesPerBurst;
-//        final float newBurstDelay;
-//
-//        float burstDelay = particlesPerBurst / particlesPerSecond;
-//        if (burstDelay >= minBurstDelay) {
-//            newParticlesPerBurst = particlesPerBurst;
-//            newBurstDelay = burstDelay;
-//        } else {
-//            newParticlesPerBurst = (int) Math.ceil(particlesPerSecond * minBurstDelay);
-//            newBurstDelay = (int) Math.floor(particlesPerSecond * minBurstDelay) / particlesPerSecond;
-//        }
-//
-//        final float startTime = instance.currentTime;
-//        final int maxParticles = (int) (particlesPerSecond * maxDuration);
-//        doAtTime(new Action() {
-//            float lastBurstTime = startTime;
-//            int index = 0;
-//            @Override
-//            public void perform() {
-//                int burstAmount = Math.min(newParticlesPerBurst, maxParticles - index);
-//                if (instance.currentTime <= startTime + maxDuration
-//                        && burstAmount > 0
-//                        && (doBeforeGenerating == null || doBeforeGenerating.apply(emitter))
-//                        && burst(emitter, burstAmount, index)) {
-//                    doAtTime(this, lastBurstTime + newBurstDelay);
-//                    lastBurstTime += newBurstDelay;
-//                    index += burstAmount;
-//                }
-//            }
-//        }, startTime);
     }
 
     /**

@@ -27,6 +27,7 @@ layout (location = 12) in vec4 fade_time_data;
 uniform mat4 projection;
 uniform float time;
 uniform vec2 textureScale;
+uniform vec2 spriteCenter;
 
 layout (std140) uniform TrackedEmitters {
   vec4 locations[1024];
@@ -72,7 +73,7 @@ void main() {
   float facing_angle = angle_data.x + elapsed*angle_data.y + 0.5f*elapsed*elapsed*angle_data.z;
   vec2 vert_loc = vert_locs[gl_VertexID];
   vec2 size = vec2(size_data_x.x + elapsed*size_data_x.y + 0.5f*elapsed*elapsed*size_data_x.z, size_data_y.x + elapsed*size_data_y.y + 0.5*elapsed*elapsed*size_data_y.z);
-  vec2 vert_pos = rot_mat(facing_angle + emitter_xdir) * (size*vert_loc - size/2.f);
+  vec2 vert_pos = rot_mat(facing_angle + emitter_xdir) * (size * vert_loc - size * spriteCenter);
 
   gl_Position = projection * vec4(vert_pos.x + particle_pos.x, vert_pos.y + particle_pos.y, 1.f, 1.f);
 

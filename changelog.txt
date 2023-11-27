@@ -4,11 +4,12 @@
 - Shader now uses SpriteAPI's textureWidth and textureLength, scaling the image up when they are less than 1.
 - Shader now uses SpriteAPI's centerX and centerY if they are non-negative and sticks to using the standard
   (0.5, 0.5) center otherwise.
-- Updated dynamic anchoring to also dynamically update the emitter's axis.
+- Updated dynamic anchoring to also dynamically update the emitter's axis. Note: Particles.anchorEmitter still only anchors
+  position, not angle.
 - Fixed untextured particles' alpha being capped to 0.25.
 - Removed multiple extraneous getLocation calls when adding particle data to a float buffer
 - Halved maximum simultaneous active dynamic emitters, down to 1024 from 2048
-- Control-flow optimizations
+- Various optimizations
 
 0.62:
 

@@ -1,3 +1,9 @@
+0.71:
+
+- Fixed default particle falloff, now is actually using square falloff and should look like particlealpha64sq.png in graphics/fx
+- Made ParticleData.colorHSVA public
+- No longer hard crashes if glMapBufferRange encounters an error, and will log an error message into the console
+
 0.7:
 
 - Added preInitParticles, which is called only once per burst and can be used to avoid re-computation.

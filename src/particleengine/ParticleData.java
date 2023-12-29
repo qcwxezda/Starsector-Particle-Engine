@@ -226,7 +226,7 @@ public class ParticleData {
         return this;
     }
 
-    ParticleData colorHSVA(float[] color) {
+    public ParticleData colorHSVA(float[] color) {
         this.color = color;
         return this;
     }

@@ -2,6 +2,7 @@ package particleengine;
 
 import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.util.Pair;
+import org.apache.log4j.Logger;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.*;
 
@@ -12,6 +13,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 class ParticleAllocator {
+    static final Logger logger = Logger.getLogger(ParticleAllocator.class);
     /** In number of floats. */
     static final int INITIAL_BUFFER_SIZE = 4096, MAX_BUFFER_SIZE = 2 << 29 - 1;
     /**
@@ -119,19 +121,25 @@ class ParticleAllocator {
                 numBytes,
                 GL30.GL_MAP_READ_BIT | GL30.GL_MAP_WRITE_BIT,
                 null);
-        buffer.order(ByteOrder.nativeOrder());
-
-        FloatBuffer fb1 = buffer.asFloatBuffer();
-        FloatBuffer fb2 = fb1.duplicate();
-
-        fb2.position(0);
-        for (AllocatedClusterData clusterData : allocatedClusters) {
-            fb1.limit(clusterData.locationInBuffer + clusterData.sizeInFloats);
-            fb1.position(clusterData.locationInBuffer);
-            clusterData.updateLocation(fb2.position());
-            fb2.put(fb1);
+        if (buffer == null) {
+            logger.error("Failed to map array buffer with error code: " + GL11.glGetError());
+            bufferPosition = 0;
         }
-        bufferPosition = fb2.position();
+        else {
+            buffer.order(ByteOrder.nativeOrder());
+
+            FloatBuffer fb1 = buffer.asFloatBuffer();
+            FloatBuffer fb2 = fb1.duplicate();
+
+            fb2.position(0);
+            for (AllocatedClusterData clusterData : allocatedClusters) {
+                fb1.limit(clusterData.locationInBuffer + clusterData.sizeInFloats);
+                fb1.position(clusterData.locationInBuffer);
+                clusterData.updateLocation(fb2.position());
+                fb2.put(fb1);
+            }
+            bufferPosition = fb2.position();
+        }
 
         GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
@@ -171,8 +179,13 @@ class ParticleAllocator {
                         (long) bufferPosition * Particles.FLOAT_SIZE,
                         GL30.GL_MAP_READ_BIT | GL30.GL_MAP_WRITE_BIT,
                         null);
-                existingBuffer.order(ByteOrder.nativeOrder());
-                newBuffer.put(existingBuffer.asFloatBuffer());
+                if (existingBuffer == null) {
+                    logger.error("Failed to map array buffer with error code: " + GL11.glGetError());
+                }
+                else {
+                    existingBuffer.order(ByteOrder.nativeOrder());
+                    newBuffer.put(existingBuffer.asFloatBuffer());
+                }
                 GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
             }
             newBuffer.put(buffer);

@@ -12,21 +12,28 @@ import java.io.IOException;
 public class ParticleEngineModPlugin extends BaseModPlugin {
     static String savedEmittersDirectory = null;
     private static final Logger log = Logger.getLogger(ParticleEngineModPlugin.class);
+    public static boolean enabled = true;
 
     @Override
     public void onApplicationLoad() {
         try {
             JSONObject modInfo = Global.getSettings().loadJSON("particleengine.json");
+            enabled = modInfo.getBoolean("enabled");
             savedEmittersDirectory = modInfo.getString("savedEmittersDirectory");
         }
         catch (IOException | JSONException e) {
             log.error("Could not read savedEmittersDirectory in mod_info.json. Writing emitters to file will be disabled.", e);
         }
-        ParticleShader.init("particle.vert", "particle.frag");
+
+        if (enabled) {
+            ParticleShader.init("particle.vert", "particle.frag");
+        }
     }
 
     @Override
     public void onGameLoad(boolean newGame) {
-        Global.getSector().addTransientListener(new CleanupScript(false));
+        if (enabled) {
+            Global.getSector().addTransientListener(new CleanupScript(false));
+        }
     }
 }

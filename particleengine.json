@@ -1,3 +1,4 @@
 {
-  "savedEmittersDirectory": "../saved_emitters"
+  "savedEmittersDirectory": "../saved_emitters",
+  "enabled": true
 }

@@ -209,6 +209,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
     /** This is done automatically and should not be manually called. */
     @Override
     public void init(final CombatEngineAPI engine) {
+        if (!ParticleEngineModPlugin.enabled) return;
         clearBuffers();
         this.engine = engine;
         currentTime = 0f;
@@ -225,7 +226,7 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
     /** This is done automatically and should not be manually called. */
     @Override
     public void advance(float amount, List<InputEventAPI> events) {
-        if (engine == null || engine.isPaused()) {
+        if (engine == null || engine.isPaused() || !ParticleEngineModPlugin.enabled) {
             return;
         }
 
@@ -515,10 +516,6 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
             float particlesPerSecond,
             float maxDuration,
             @Nullable StreamAction<T> doBeforeGenerating) {
-        final Particles instance = getInstance();
-        if (instance == null) {
-            return;
-        }
         stream(emitter, particlesPerBurst, particlesPerSecond, maxDuration, doBeforeGenerating, null);
     }
 
@@ -547,7 +544,6 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
         if (instance == null) {
             return;
         }
-
         instance.particleStreams.add(new ParticleStream<>(
                 emitter,
                 particlesPerBurst,

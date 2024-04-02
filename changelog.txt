@@ -1,3 +1,10 @@
+0.73:
+- Added hard-toggle switch in particleengine.json, turns off all particle effects using this mod while still allowing it to
+  run in the mod list.
+
+0.72:
+- Updated to 0.97a, no changes.
+
 0.71:
 
 - Fixed default particle falloff, now is actually using square falloff and should look like particlealpha64sq.png in graphics/fx

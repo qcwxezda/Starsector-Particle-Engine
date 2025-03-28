@@ -56,9 +56,7 @@ public abstract class Utils {
         }
         else if (array == null) {
             float value = (float) json.getDouble(name);
-            for (int i = 0; i < length; i++) {
-                res[i] = value;
-            }
+            Arrays.fill(res, value);
         }
         else {
             if (array.length() != length) {

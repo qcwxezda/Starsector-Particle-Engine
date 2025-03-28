@@ -87,12 +87,8 @@ class ParticleAllocator {
         else {
             allocatedClusters.add(clusterData);
             lastAllocated = clusterData;
-            Particles.doLater(new Particles.Action() {
-                @Override
-                public void perform() {
-                    registerParticleDeath(clusterData);
-                }
-            }, clusterData.deathTime - clusterData.generationTime + CLUSTER_DESTRUCTION_DELAY);
+            Particles.doLater(() ->
+                    registerParticleDeath(clusterData), clusterData.deathTime - clusterData.generationTime + CLUSTER_DESTRUCTION_DELAY);
         }
     }
 

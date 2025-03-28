@@ -70,21 +70,13 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
         void perform();
     }
 
-    private static class DeferredAction implements Comparable<DeferredAction> {
-
-        private final float time;
-        private final Action action;
-
-        private DeferredAction(Action action, float time) {
-            this.action = action;
-            this.time = time;
-        }
+    private record DeferredAction(Action action, float time) implements Comparable<DeferredAction> {
 
         @Override
-        public int compareTo(DeferredAction o) {
-            return Float.compare(time, o.time);
+            public int compareTo(DeferredAction o) {
+                return Float.compare(time, o.time);
+            }
         }
-    }
 
     static void doLater(Action action, float delay) {
         Particles instance = getInstance();
@@ -454,11 +446,8 @@ public class Particles extends BaseEveryFrameCombatPlugin implements CombatLayer
                 emitter.getBlendFunc(),
                 emitter.getLayer());
 
-        SortedMap<ParticleType, Pair<ParticleAllocator, ParticleRenderer>> subMap = instance.particleMap.get(type.layer);
-        if (subMap == null) {
-            subMap = new TreeMap<>();
-            instance.particleMap.put(type.layer, subMap);
-        }
+        SortedMap<ParticleType, Pair<ParticleAllocator, ParticleRenderer>> subMap
+                = instance.particleMap.computeIfAbsent(type.layer, k -> new TreeMap<>());
         Pair<ParticleAllocator, ParticleRenderer> pair = subMap.get(type);
 
         ParticleAllocator allocator;

@@ -61,14 +61,9 @@ class EmitterBufferHandler {
             // No free slots are available, we have to remove some emitters
             // Sort by staleness -- last particle death time
             List<Integer> sortedFilledPositions = new ArrayList<>(filledPositions);
-            Collections.sort(sortedFilledPositions, new Comparator<Integer>() {
-                @Override
-                public int compare(Integer a, Integer b) {
-                    return Float.compare(
-                            trackedEmitters[a].lastParticleDeathTime,
-                            trackedEmitters[b].lastParticleDeathTime);
-                }
-            });
+            sortedFilledPositions.sort((a, b) -> Float.compare(
+                    trackedEmitters[a].lastParticleDeathTime,
+                    trackedEmitters[b].lastParticleDeathTime));
 
             int numToRemove = (int) Math.ceil(REMOVE_WHEN_FULL_FRAC *  sortedFilledPositions.size());
             for (int i = 0; i < numToRemove; i++) {

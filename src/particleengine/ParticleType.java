@@ -18,15 +18,12 @@ class ParticleType implements Comparable<ParticleType> {
         this.layer = layer;
     }
 
-    static final Comparator<SpriteAPI> spriteComparator = new Comparator<SpriteAPI>() {
-        @Override
-        public int compare(SpriteAPI a, SpriteAPI b) {
-            if (a == null && b != null) return -1;
-            if (a != null && b == null) return 1;
-            if (a == null) return 0;
-            // Just sort on id at this point
-            return Integer.compare(a.getTextureId(), b.getTextureId());
-        }
+    static final Comparator<SpriteAPI> spriteComparator = (a, b) -> {
+        if (a == null && b != null) return -1;
+        if (a != null && b == null) return 1;
+        if (a == null) return 0;
+        // Just sort on id at this point
+        return Integer.compare(a.getTextureId(), b.getTextureId());
     };
 
     @Override

@@ -11,6 +11,7 @@ abstract class ParticleShader extends Shader {
     public static int texSamplerLoc;
     public static int textureSizeLoc;
     public static int spriteCenterLoc;
+    public static int viewportAlphaLoc;
     public static int emitterUniformBlockLoc;
     public static final int emitterUniformBlockBinding = 1;
     public static String
@@ -20,6 +21,7 @@ abstract class ParticleShader extends Shader {
             textureSizeName = "textureScale",
             texSamplerName = "texSampler",
             spriteCenterName = "spriteCenter",
+            viewportAlphaName = "viewportAlpha",
             emitterUniformBlockName = "TrackedEmitters";
 
     public static void init(String vertShaderPath, String fragShaderPath) {
@@ -30,6 +32,7 @@ abstract class ParticleShader extends Shader {
         texSamplerLoc = GL20.glGetUniformLocation(programId, texSamplerName);
         textureSizeLoc = GL20.glGetUniformLocation(programId, textureSizeName);
         spriteCenterLoc = GL20.glGetUniformLocation(programId, spriteCenterName);
+        viewportAlphaLoc = GL20.glGetUniformLocation(programId, viewportAlphaName);
         emitterUniformBlockLoc = GL31.glGetUniformBlockIndex(programId, emitterUniformBlockName);
         GL31.glUniformBlockBinding(programId, emitterUniformBlockLoc, emitterUniformBlockBinding);
     }

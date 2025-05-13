@@ -1,3 +1,13 @@
+0.9.0:
+- Now supports creating particles in the campaign layer.
+- IEmitter:
+    - added CampaignEngineLayers getCampaignLayer(), the layer the particles should be rendered to if called in the campaign layer.
+    - added boolean isAlwaysRenderInCampaign(), set this to true to persist particles through campaign screen transitions.
+- Can now call burst and stream directly from the emitter instead of having to go through Particles.
+- Numerous under-the-hood changes to more efficiently support campaign rendering, (hopefully) doesn't break anything.
+- No longer unloads loaded textures to prevent possible conflicts in case, e.g. Particle Engine loads a texture, another mod loads it later, then Particle Engine unloads it after it's done using it.
+- Note: particles are absolutely *not* stored in the save file, so they will not persist through a game exit/load cycle.
+
 0.8.0:
 - Recompiled for Java 17.
 - Changed game version to 0.98a.

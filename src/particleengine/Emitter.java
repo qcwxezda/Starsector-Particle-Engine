@@ -1,5 +1,6 @@
 package particleengine;
 
+import com.fs.starfarer.api.campaign.CampaignEngineLayers;
 import com.fs.starfarer.api.combat.CombatEngineLayers;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.util.Misc;
@@ -64,6 +65,8 @@ public class Emitter extends IEmitter {
     final Vector2f xAxis = new Vector2f(1f, 0f);
     boolean syncSize = false;
     CombatEngineLayers layer = CombatEngineLayers.ABOVE_PARTICLES_LOWER;
+    CampaignEngineLayers campaignLayer = CampaignEngineLayers.ABOVE;
+    boolean alwaysRenderInCampaign = false;
     float inactiveBorder = 500f;
 
     Emitter(
@@ -97,6 +100,26 @@ public class Emitter extends IEmitter {
      */
     public void setLayer(CombatEngineLayers layer) {
         this.layer = layer;
+    }
+
+    /**
+     * Sets the rendering layer of this emitter. See {@link com.fs.starfarer.api.campaign.CampaignEngineLayers} for an
+     * ordered list of possible values.
+     *
+     * @param layer Combat layer to render particles to
+     */
+    public void setCampaignLayer(CampaignEngineLayers layer) {
+        this.campaignLayer = layer;
+    }
+
+    /**
+     * If {@code true}, particles will persist between screen transitions (but their positions will not be adjusted).
+     * See {@link IEmitter#isAlwaysRenderInCampaign} for more details.
+     *
+     * @param alwaysRender Whether particles should persist through campaign screen transitions
+     */
+    public void setAlwaysRenderInCampaign(boolean alwaysRender) {
+        this.alwaysRenderInCampaign = alwaysRender;
     }
 
     /**
@@ -682,6 +705,16 @@ public class Emitter extends IEmitter {
     @Override
     public CombatEngineLayers getLayer() {
         return layer;
+    }
+
+    @Override
+    public CampaignEngineLayers getCampaignLayer() {
+        return campaignLayer;
+    }
+
+    @Override
+    public boolean isAlwaysRenderInCampaign() {
+        return alwaysRenderInCampaign;
     }
 
     @Override

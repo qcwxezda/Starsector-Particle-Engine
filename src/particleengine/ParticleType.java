@@ -1,22 +1,16 @@
 package particleengine;
 
+import com.fs.starfarer.api.campaign.CampaignEngineLayers;
+import com.fs.starfarer.api.campaign.LocationAPI;
 import com.fs.starfarer.api.combat.CombatEngineLayers;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 
 import java.util.Comparator;
 
-class ParticleType implements Comparable<ParticleType> {
-    final SpriteAPI sprite;
-    final CombatEngineLayers layer;
-    final int sfactor, dfactor, blendMode;
-
-    ParticleType(SpriteAPI sprite, int sfactor, int dfactor, int blendMode, CombatEngineLayers layer) {
-        this.sprite = sprite;
-        this.sfactor = sfactor;
-        this.dfactor = dfactor;
-        this.blendMode = blendMode;
-        this.layer = layer;
-    }
+/**
+ * T should be one of {@link CampaignEngineLayers} or {@link CombatEngineLayers}.
+ */
+record ParticleType(SpriteAPI sprite, int sfactor, int dfactor, int blendMode, Object layer, LocationAPI campaignLocation) implements Comparable<ParticleType> {
 
     static final Comparator<SpriteAPI> spriteComparator = (a, b) -> {
         if (a == null && b != null) return -1;
@@ -28,7 +22,26 @@ class ParticleType implements Comparable<ParticleType> {
 
     @Override
     public int compareTo(ParticleType otherType) {
-        if (layer != otherType.layer) return layer.compareTo(otherType.layer);
+        boolean a1 = layer instanceof CombatEngineLayers;
+        boolean a2 = otherType.layer instanceof CombatEngineLayers;
+        boolean b1 = layer instanceof CampaignEngineLayers;
+        boolean b2 = otherType.layer instanceof CampaignEngineLayers;
+        if (a1) {
+            if (a2) {
+                int cmp = ((CombatEngineLayers) layer).compareTo((CombatEngineLayers) otherType.layer);
+                if (cmp != 0) return cmp;
+            }
+            else return -1;
+        } else if (b1) {
+            if (b2) {
+                int cmp = ((CampaignEngineLayers) layer).compareTo((CampaignEngineLayers) otherType.layer);
+                if (cmp != 0) return cmp;
+            }
+            else return 1;
+        } else {
+            throw new RuntimeException("ParticleType.layer must be either a CombatEngineLayers or CampaignEngineLayers");
+        }
+
         // sprite is used as a branching condition in fragment shader, so sort on this first
         int spriteComparison = spriteComparator.compare(sprite, otherType.sprite);
         if (spriteComparison != 0) {
@@ -36,36 +49,10 @@ class ParticleType implements Comparable<ParticleType> {
         }
         if (sfactor != otherType.sfactor) return Integer.compare(sfactor, otherType.sfactor);
         if (dfactor != otherType.dfactor) return Integer.compare(dfactor, otherType.dfactor);
-        return Integer.compare(blendMode, otherType.blendMode);
+        if (blendMode != otherType.blendMode) return Integer.compare(blendMode, otherType.blendMode);
+        if (campaignLocation == null && otherType.campaignLocation == null) { return 0; }
+        if (campaignLocation == null) { return -1; }
+        if (otherType.campaignLocation == null) { return 1; }
+        return campaignLocation.getId().compareTo(otherType.campaignLocation.getId());
     }
-
-//    @Override
-//    public boolean equals(Object o) {
-//        if (!(o instanceof ParticleType)) {
-//            return false;
-//        }
-//
-//        ParticleType other = (ParticleType) o;
-//        if (other.sprite == null && sprite != null) return false;
-//        if (other.sprite != null && sprite == null) return false;
-//        return (sprite == null || sprite.getTextureId() == other.sprite.getTextureId())
-//                && sfactor == other.sfactor
-//                && dfactor == other.dfactor
-//                && blendMode == other.blendMode
-//                && layer == other.layer;
-//    }
-//
-//    @Override
-//    public int hashCode() {
-//        int hash = 1;
-//        if (sprite != null) {
-//            hash = 31 * hash + sprite.getTextureId();
-//        }
-//        hash = 31 * hash + sfactor;
-//        hash = 31 * hash + dfactor;
-//        hash = 31 * hash + blendMode;
-//        hash = 31 * hash + layer.ordinal();
-//        return hash;
-//    }
-
 }

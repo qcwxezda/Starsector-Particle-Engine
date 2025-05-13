@@ -1,19 +1,30 @@
 package particleengine;
 
+import com.fs.starfarer.api.campaign.CampaignEngineLayers;
+import com.fs.starfarer.api.campaign.listeners.CurrentLocationChangedListener;
 import com.fs.starfarer.api.combat.CombatEngineLayers;
 import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.util.Pair;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.util.vector.Vector2f;
 
 import java.nio.FloatBuffer;
 
-/** Emitter interface. Extend to make custom particle emitters. */
+/** Emitter interface. Extend to make custom particle emitters.*/
 public abstract class IEmitter {
-    protected float lastParticleDeathTime = 0f;
     protected int indexInTracker = -1;
     protected boolean isDynamic = false;
+    protected float lastCombatParticleDeathTime = 0f;
+    protected float lastCampaignParticleDeathTime = 0f;
+
+    protected float getLastParticleDeathTime() {
+        if (Particles.isCombat()) {
+            return Math.max(lastCombatParticleDeathTime, lastCampaignParticleDeathTime);
+        }
+        return lastCampaignParticleDeathTime;
+    }
 
     /**
      * @return Absolute location of this emitter, in world coordinates.
@@ -47,9 +58,22 @@ public abstract class IEmitter {
     public abstract int getBlendFunc();
 
     /**
-     * @return Layer particles should be rendered on.
+     * @return Combat layer particles should be rendered on.
      */
     public abstract CombatEngineLayers getLayer();
+
+    /**
+     * @return Campaign layer particles should be rendered on.
+     */
+    public abstract CampaignEngineLayers getCampaignLayer();
+
+    /**
+     * @return Whether the particles should persist through campaign location transitions.
+     * Note that particle and emitter positions are world-space-relative, not screen-space-relative, so
+     * dynamic anchoring and changing emitters' positions in a {@link CurrentLocationChangedListener}
+     * is required to fix particles' screen-space positions.
+     */
+    public abstract boolean isAlwaysRenderInCampaign();
 
     /**
      * @return Distance from edge of screen beyond which particles are culled before generation.
@@ -109,7 +133,7 @@ public abstract class IEmitter {
      * @return A pair. The first item in the pair is the {@link FloatBuffer} containing data for every particle.
      *  The second item in the pair is the maximum life of all the particles in this generation sequence.
      */
-    protected final Pair<FloatBuffer, Float> generate(int count, int startIndex, float startTime, ViewportAPI viewport) {
+    protected final Pair<FloatBuffer, Float> generate(int count, int startIndex, float startTime, ViewportAPI viewport, boolean isCombat) {
         if (!Utils.isInViewport(getLocation(), viewport, getRenderRadius())) {
             return null;
         }
@@ -131,9 +155,77 @@ public abstract class IEmitter {
                 data.addToFloatBuffer(this, startTime, buffer);
             }
         }
-        lastParticleDeathTime = Math.max(lastParticleDeathTime, startTime + maxLife);
+        if (isCombat) {
+            lastCombatParticleDeathTime = Math.max(lastCombatParticleDeathTime, startTime + maxLife);
+        } else {
+            lastCampaignParticleDeathTime = Math.max(lastCampaignParticleDeathTime, startTime + maxLife);
+        }
         buffer.flip();
         return new Pair<>(buffer, maxLife);
     }
 
+    /**
+     * Generates an instantaneous burst of particles.
+     *
+     * @param count Number of particles to generate.
+     * @return Whether the particles were successfully generated.
+     */
+    @SuppressWarnings("unused")
+    public final boolean burst(int count) {
+        return Particles.burst(this, count, 0);
+    }
+
+    /**
+     * Generates a continuous stream of particles.
+     *
+     * @param particlesPerBurst  Number of particles that should be generated at once.
+     * @param particlesPerSecond Total number of particles generated per second.
+     * @param duration           Amount of time this particle stream should last. If negative, the stream will never expire.
+     */
+    public final void stream(int particlesPerBurst, float particlesPerSecond, float duration) {
+        Particles.stream(this, particlesPerBurst, particlesPerSecond, duration, null);
+    }
+
+
+    /**
+     * Generates a continuous stream of particles.
+     *
+     * @param particlesPerBurst  Number of particles that should be generated at once.
+     * @param particlesPerSecond Total number of particles generated per second.
+     * @param maxDuration        Maximum amount of time this particle stream should last. If negative, the stream
+     *                           will not naturally expire.
+     * @param doBeforeGenerating Custom function that's called immediately before each particle generation sequence in this stream.
+     *                           Returning {@code false} will end the stream.
+     */
+    public final <T extends IEmitter> void stream(
+            int particlesPerBurst,
+            float particlesPerSecond,
+            float maxDuration,
+            @Nullable Particles.StreamAction<T> doBeforeGenerating) {
+        //noinspection unchecked
+        Particles.stream((T) this, particlesPerBurst, particlesPerSecond, maxDuration, doBeforeGenerating, null);
+    }
+
+    /**
+     * Generates a continuous stream of particles.
+     *
+     * @param particlesPerBurst  Number of particles that should be generated at once.
+     * @param particlesPerSecond Total number of particles generated per second.
+     * @param maxDuration        Maximum amount of time this particle stream should last. If negative, the stream
+     *                           will not naturally expire.
+     * @param doBeforeGenerating Custom function that's called immediately before each particle generation sequence in this stream.
+     *                           Returning {@code false} will end the stream.
+     * @param doWhenFinished     Custom function that's called when the stream expires, which can occur either naturally, if
+     *                           doBeforeGenerating returns {@code false}, or if the stream's emitter's anchor point is removed from play.
+     *                           The return value is not used.
+     */
+    public final <T extends IEmitter> void stream(
+            int particlesPerBurst,
+            float particlesPerSecond,
+            float maxDuration,
+            @Nullable Particles.StreamAction<T> doBeforeGenerating,
+            @Nullable Particles.StreamAction<T> doWhenFinished) {
+        //noinspection unchecked
+        Particles.stream((T) this, particlesPerBurst, particlesPerSecond, maxDuration, doBeforeGenerating, doWhenFinished);
+    }
 }

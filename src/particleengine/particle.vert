@@ -28,6 +28,7 @@ uniform mat4 projection;
 uniform float time;
 uniform vec2 textureScale;
 uniform vec2 spriteCenter;
+uniform float viewportAlpha;
 
 layout (std140) uniform TrackedEmitters {
   vec4 locations[1024];
@@ -79,7 +80,7 @@ void main() {
 
   tex_coord = vert_loc * textureScale;
 
-  float alpha = min(1.f / fade_time_data.x * elapsed, min(1.f, lifetime / fade_time_data.y - elapsed / fade_time_data.y));
+  float alpha = viewportAlpha * min(1.f / fade_time_data.x * elapsed, min(1.f, lifetime / fade_time_data.y - elapsed / fade_time_data.y));
   vec4 dead_color = vec4(0.f, 0.f, 0.f, 0.f);
   vec4 alive_color = to_rgba(color_start + elapsed * color_shift);
   color = mix(alive_color, dead_color, float(elapsed > lifetime || size.x <= 0 || size.y <= 0)) * vec4(1.f, 1.f, 1.f, alpha);

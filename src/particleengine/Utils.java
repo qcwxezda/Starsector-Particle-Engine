@@ -4,6 +4,7 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.combat.ViewportAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.util.Misc;
+import com.fs.starfarer.campaign.BaseLocation;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -69,6 +70,10 @@ public abstract class Utils {
         return res;
     }
 
+    public static BaseLocation getPlayerContainingLocation() {
+        return ((BaseLocation) Global.getSector().getPlayerFleet().getContainingLocation());
+    }
+
     /**
      * Retrieves a sprite from the given file path, loading it into a texture if it doesn't already have a texture
      * assigned. <br>
@@ -85,7 +90,6 @@ public abstract class Utils {
             try {
                 Global.getSettings().loadTexture(loc);
                 sprite = Global.getSettings().getSprite(loc);
-                Particles.loadedTextures.add(loc);
             } catch (IOException e) {
                 log.warn(String.format("(Particle Engine) Failed to a load texture at location [%s] into memory", loc), e);
                 sprite = null;

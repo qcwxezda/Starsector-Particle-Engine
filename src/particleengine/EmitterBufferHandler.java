@@ -38,7 +38,7 @@ class EmitterBufferHandler {
         }
     }
 
-    void updateTrackedEmitters(float currentTime) {
+    void updateTrackedEmitters(float currentCampaignTime, float currentCombatTime) {
         for (Iterator<Integer> iterator = filledPositions.iterator(); iterator.hasNext(); ) {
             int i = iterator.next();
             IEmitter emitter = trackedEmitters[i];
@@ -48,7 +48,8 @@ class EmitterBufferHandler {
             emitterLocations.put(4 * i + 2, emitter.getXDir() * Misc.RAD_PER_DEG);
 
             // Check if the emitter is dead
-            if (emitter.lastParticleDeathTime < currentTime) {
+            if (emitter.lastCampaignParticleDeathTime < currentCampaignTime &&
+                    (emitter.lastCombatParticleDeathTime < currentCombatTime || !Particles.isCombat())) {
                 emitter.untrack();
                 freePositions.add(i);
                 iterator.remove();
@@ -62,8 +63,8 @@ class EmitterBufferHandler {
             // Sort by staleness -- last particle death time
             List<Integer> sortedFilledPositions = new ArrayList<>(filledPositions);
             sortedFilledPositions.sort((a, b) -> Float.compare(
-                    trackedEmitters[a].lastParticleDeathTime,
-                    trackedEmitters[b].lastParticleDeathTime));
+                    trackedEmitters[a].getLastParticleDeathTime(),
+                    trackedEmitters[b].getLastParticleDeathTime()));
 
             int numToRemove = (int) Math.ceil(REMOVE_WHEN_FULL_FRAC *  sortedFilledPositions.size());
             for (int i = 0; i < numToRemove; i++) {

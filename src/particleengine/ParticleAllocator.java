@@ -51,9 +51,6 @@ class ParticleAllocator {
         vbo = GL15.glGenBuffers();
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
 
-        Particles.usedVAOs.add(vao);
-        Particles.usedVBOs.add(vbo);
-
         int offset = 0;
         for (int i = 0; i < Particles.VERTEX_ATTRIB_SIZES.length; i++) {
             GL20.glEnableVertexAttribArray(i);
@@ -141,8 +138,8 @@ class ParticleAllocator {
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
     }
 
-    void allocateParticles(IEmitter emitter, int count, int startIndex, float startTime, ViewportAPI viewport) {
-        Pair<FloatBuffer, Float> bufferAndLife = emitter.generate(count, startIndex, startTime, viewport);
+    void allocateParticles(IEmitter emitter, int count, int startIndex, float startTime, ViewportAPI viewport, boolean isCombat) {
+        Pair<FloatBuffer, Float> bufferAndLife = emitter.generate(count, startIndex, startTime, viewport, isCombat);
         // If buffer data is null, that means the emitter was out of bounds and no particles should be generated
         if (bufferAndLife == null) {
             return;

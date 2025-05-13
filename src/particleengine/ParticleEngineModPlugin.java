@@ -13,6 +13,7 @@ public class ParticleEngineModPlugin extends BaseModPlugin {
     static String savedEmittersDirectory = null;
     private static final Logger log = Logger.getLogger(ParticleEngineModPlugin.class);
     public static boolean enabled = true;
+    static Particles particlesInstance = null;
 
     @Override
     public void onApplicationLoad() {
@@ -27,13 +28,17 @@ public class ParticleEngineModPlugin extends BaseModPlugin {
 
         if (enabled) {
             ParticleShader.init("particle.vert", "particle.frag");
+            particlesInstance = new Particles();
         }
     }
 
     @Override
     public void onGameLoad(boolean newGame) {
         if (enabled) {
-            Global.getSector().addTransientListener(new CleanupScript(false));
+            Particles.reset();
+            Global.getSector().addTransientScript(particlesInstance);
+            Global.getSector().getListenerManager().addListener(particlesInstance, true);
+            particlesInstance.reportCurrentLocationChanged(null, Utils.getPlayerContainingLocation());
         }
     }
 }

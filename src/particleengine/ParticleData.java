@@ -203,6 +203,7 @@ public class ParticleData {
      * @param a Initial alpha channel value between {@code 0} and {@code 1}.
      * @return {@code this}
      */
+    @SuppressWarnings("unused")
     public ParticleData color(float r, float g, float b, float a) {
         Utils.toHSVA(new float[]{r, g, b, a}, this.color);
         return this;
@@ -212,6 +213,7 @@ public class ParticleData {
      * @param color {@link Color} object to set this particle's color to.
      * @return {@code this}
      */
+    @SuppressWarnings("unused")
     public ParticleData color(Color color) {
         Utils.toHSVA(color.getRGBComponents(null), this.color);
         return this;
@@ -221,6 +223,7 @@ public class ParticleData {
      * @param color 4-element float array containing RGBA color data.
      * @return {@code this}
      */
+    @SuppressWarnings("unused")
     public ParticleData color(float[] color) {
         Utils.toHSVA(color, this.color);
         return this;

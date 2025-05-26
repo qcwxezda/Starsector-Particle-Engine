@@ -62,7 +62,6 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
         BYTES_PER_PARTICLE = FLOATS_PER_PARTICLE * FLOAT_SIZE;
     }
 
-    private CombatEngineAPI engine;
     float currentCampaignTime = 0f, currentCombatTime = 0f;
     static final float minBurstDelay = 1f / 60f;
     private static final String COMBAT_STATE = "com.fs.starfarer.combat.CombatState";
@@ -118,11 +117,6 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
         var queue = isCombat() ? instance.combatDoLaterQueue : instance.campaignDoLaterQueue;
 
         queue.add(new DeferredAction(action, time));
-    }
-
-    @Override
-    public void init(CombatEntityAPI entity) {
-        engine = Global.getCombatEngine();
     }
 
     static void reset() {
@@ -194,6 +188,7 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
     }
 
     void advance(float amount, boolean isCombat) {
+        var engine = Global.getCombatEngine();
         if (isCombat && (engine == null
                 || engine.isPaused()
                 || !ParticleEngineModPlugin.enabled)) {
@@ -532,7 +527,7 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
             allocator = pair.one;
         }
 
-        allocator.allocateParticles(emitter, count, startIndex, getCurrentTime(), isCombat ? instance.engine.getViewport() : Global.getSector().getViewport(), isCombat);
+        allocator.allocateParticles(emitter, count, startIndex, getCurrentTime(), isCombat ? Global.getCombatEngine().getViewport() : Global.getSector().getViewport(), isCombat);
         return true;
     }
 

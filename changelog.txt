@@ -1,6 +1,6 @@
 0.9.1:
 - No longer holds onto a CombatEngineAPI instance (potential for memory leaks).
-- Changed license to GPL (more permissive).
+- (12:10 PM EST 5/26/2025) Changed license to LGPL (more permissive).
 
 0.9.0:
 - Now supports creating particles in the campaign layer.

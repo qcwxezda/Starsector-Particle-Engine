@@ -1,3 +1,7 @@
+0.9.2:
+- Now uses sprite.getTexWidth and sprite.getTexHeight added in Starsector 0.98.
+- Fallback to default particle if a sprite with a null texture is passed in.
+
 0.9.1:
 - No longer holds onto a CombatEngineAPI instance (potential for memory leaks).
 - (12:10 PM EST 5/26/2025) Changed license to LGPL (more permissive).

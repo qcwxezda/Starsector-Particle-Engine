@@ -1,0 +1,10 @@
+/xf
+	*.bat
+	*.iml
+	*.gitignore 
+	*.rcj
+/xd
+	.git
+	.idea
+	screenshots
+	out

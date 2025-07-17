@@ -6,7 +6,7 @@
     {
         "major":0,
         "minor":9,
-        "patch":2,
+        "patch":3,
     },
     "directDownloadURL":"https://github.com/qcwxezda/Starsector-Particle-Engine/releases/latest/download/Particle.Engine.zip",
     "changelogURL":"https://raw.githubusercontent.com/qcwxezda/Starsector-Particle-Engine/master/changelog.txt"

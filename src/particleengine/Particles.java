@@ -65,6 +65,7 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
     float currentCampaignTime = 0f, currentCombatTime = 0f;
     static final float minBurstDelay = 1f / 60f;
     private static final String COMBAT_STATE = "com.fs.starfarer.combat.CombatState";
+    private static final String TITLE_SCREEN_STATE = "Title Screen State";
     // Object is CombatEngineLayers or CampaignEngineLayers
     final Map<Object, SortedMap<ParticleType, Pair<ParticleAllocator, ParticleRenderer>>> particleMap = new HashMap<>();
     private final Queue<DeferredAction> combatDoLaterQueue = new PriorityQueue<>();
@@ -623,12 +624,11 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
     private static float getCurrentTime() {
         var instance = getInstance();
         if (instance == null) return 0f;
-        return COMBAT_STATE.equals(AppDriver.getInstance().getCurrentState().getID())
-                ? instance.currentCombatTime
-                : instance.currentCampaignTime;
+        return isCombat() ? instance.currentCombatTime : instance.currentCampaignTime;
     }
 
     static boolean isCombat() {
-        return COMBAT_STATE.equals(AppDriver.getInstance().getCurrentState().getID());
+        var state = AppDriver.getInstance().getCurrentState().getID();
+        return COMBAT_STATE.equals(state) || TITLE_SCREEN_STATE.equals(state);
     }
 }

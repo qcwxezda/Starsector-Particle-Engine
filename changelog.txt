@@ -1,3 +1,6 @@
+0.9.3:
+- Fixed issue where title screen wasn't being counted as a combat screen.
+
 0.9.2:
 - Now uses sprite.getTexWidth and sprite.getTexHeight added in Starsector 0.98.
 - Fallback to default particle if a sprite with a null texture is passed in.

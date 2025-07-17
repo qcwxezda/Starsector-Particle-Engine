@@ -8,7 +8,7 @@ import com.fs.starfarer.api.graphics.SpriteAPI;
 import java.util.Comparator;
 
 /**
- * T should be one of {@link CampaignEngineLayers} or {@link CombatEngineLayers}.
+ * {@code layer} should be one of {@link CampaignEngineLayers} or {@link CombatEngineLayers}.
  */
 record ParticleType(SpriteAPI sprite, int sfactor, int dfactor, int blendMode, Object layer, LocationAPI campaignLocation) implements Comparable<ParticleType> {
 

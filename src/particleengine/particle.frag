@@ -8,5 +8,5 @@ uniform sampler2D texSampler;
 uniform bool useTexture;
 
 void main() {
-    frag_color = useTexture ? texture2D(texSampler, tex_coord) * color : vec4(color.xyz, color.w*(1.f-sqrt(2.f*distance(tex_coord, vec2(0.5f, 0.5f)))));
+    frag_color = useTexture ? texture(texSampler, tex_coord) * color : vec4(color.xyz, color.w*(1.f-sqrt(2.f*distance(tex_coord, vec2(0.5f, 0.5f)))));
 }

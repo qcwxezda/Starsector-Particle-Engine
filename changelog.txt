@@ -1,3 +1,6 @@
+0.10.1:
+- Replaced texture2d with texture in fragment shader
+
 0.10.0:
 - Replaced tracked emitters UBO with SSBO
     - Maximum number of dynamically anchored emitters increased from 1,024 to 10,000.

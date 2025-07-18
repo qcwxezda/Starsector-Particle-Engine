@@ -1,7 +1,7 @@
 package particleengine;
 
 import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL31;
+import org.lwjgl.opengl.GL43;
 
 abstract class ParticleShader extends Shader {
     public static int programId = -1;
@@ -12,8 +12,8 @@ abstract class ParticleShader extends Shader {
     public static int textureSizeLoc;
     public static int spriteCenterLoc;
     public static int viewportAlphaLoc;
-    public static int emitterUniformBlockLoc;
-    public static final int emitterUniformBlockBinding = 1;
+    public static int trackedEmitterBlockLoc;
+    public static final int trackedEmitterBinding = 1;
     public static String
             projectionName = "projection",
             timeName = "time",
@@ -22,7 +22,7 @@ abstract class ParticleShader extends Shader {
             texSamplerName = "texSampler",
             spriteCenterName = "spriteCenter",
             viewportAlphaName = "viewportAlpha",
-            emitterUniformBlockName = "TrackedEmitters";
+            trackedEmittersName = "TrackedEmitters";
 
     public static void init(String vertShaderPath, String fragShaderPath) {
         programId = Shader.createProgram(vertShaderPath, fragShaderPath, programId);
@@ -33,7 +33,7 @@ abstract class ParticleShader extends Shader {
         textureSizeLoc = GL20.glGetUniformLocation(programId, textureSizeName);
         spriteCenterLoc = GL20.glGetUniformLocation(programId, spriteCenterName);
         viewportAlphaLoc = GL20.glGetUniformLocation(programId, viewportAlphaName);
-        emitterUniformBlockLoc = GL31.glGetUniformBlockIndex(programId, emitterUniformBlockName);
-        GL31.glUniformBlockBinding(programId, emitterUniformBlockLoc, emitterUniformBlockBinding);
+        trackedEmitterBlockLoc = GL43.glGetProgramResourceIndex(programId, GL43.GL_SHADER_STORAGE_BLOCK, trackedEmittersName);
+        GL43.glShaderStorageBlockBinding(programId, trackedEmitterBlockLoc, trackedEmitterBinding);
     }
 }

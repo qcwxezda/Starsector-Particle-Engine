@@ -1,4 +1,4 @@
-#version 330
+#version 430 core
 
 layout (location = 0) in float tracked_emitter_index;
 // first 2 are particle's location at t=0, last 2 are emitter's location
@@ -30,8 +30,14 @@ uniform vec2 textureScale;
 uniform vec2 spriteCenter;
 uniform float viewportAlpha;
 
-layout (std140) uniform TrackedEmitters {
-  vec4 locations[1024];
+struct TrackedEmitterData {
+  vec2 pos;
+  float angle;
+  bool is_smooth;
+};
+
+layout (std430, binding=1) buffer TrackedEmitters {
+  TrackedEmitterData data[];
 };
 
 const vec2 vert_locs[4] = vec2[] (
@@ -59,9 +65,10 @@ vec4 to_rgba(vec4 hsva) {
 void main() {
   float lifetime = fade_time_data.w - fade_time_data.z;
   float elapsed = time - fade_time_data.z;
-  vec4 tracked_emitter_data = locations[int(tracked_emitter_index)];
-  vec2 emitter_pos = tracked_emitter_index < 0 ? pos_emitter_pos.zw : tracked_emitter_data.xy;
-  float emitter_xdir = tracked_emitter_index < 0 ? emitter_forward_dir : tracked_emitter_data.z;
+  TrackedEmitterData tracked_emitter_data = data[int(max(0.f, tracked_emitter_index))];
+  float interp = float(tracked_emitter_index >= 0) * (tracked_emitter_data.is_smooth ? elapsed/lifetime : 1.f);
+  vec2 emitter_pos = pos_emitter_pos.zw + (tracked_emitter_data.pos - pos_emitter_pos.zw) * interp;
+  float emitter_xdir = emitter_forward_dir + (tracked_emitter_data.angle - emitter_forward_dir) * interp;
 
   float revolution_angle = elapsed*radial_data.x + 0.5f* elapsed*elapsed*radial_data.y;
 

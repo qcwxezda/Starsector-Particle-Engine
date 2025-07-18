@@ -4,32 +4,32 @@ import com.fs.starfarer.api.util.Misc;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL31;
+import org.lwjgl.opengl.GL43;
 import org.lwjgl.util.vector.Vector2f;
 
 import java.nio.FloatBuffer;
 import java.util.*;
 
 class EmitterBufferHandler {
-    /** Should equal the size of {@code locations} in {@code particle.vert}.
-     *  Specified in number of emitters, each of which needs two floats of storage. */
-    static final int MAX_BUFFER_SIZE = 1024;
+
+    /**  Specified in the number of emitters, each of which is 16 bytes. */
+    static final int MAX_BUFFER_SIZE = 10000;
 
     /** Fraction of most stale emitters to remove when the buffer is full. */
     static final float REMOVE_WHEN_FULL_FRAC = 0.5f;
     final PriorityQueue<Integer> freePositions = new PriorityQueue<>();
     final SortedSet<Integer> filledPositions = new TreeSet<>(Collections.reverseOrder());
     final IEmitter[] trackedEmitters = new IEmitter[MAX_BUFFER_SIZE];
-    static final int uboBufferIndex;
+    static final int ssboBufferIndex;
     static final FloatBuffer emitterLocations;
 
     static {
-        uboBufferIndex = GL15.glGenBuffers();
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, uboBufferIndex);
+        ssboBufferIndex = GL15.glGenBuffers();
+        GL15.glBindBuffer(GL43.GL_SHADER_STORAGE_BUFFER, ssboBufferIndex);
         emitterLocations = BufferUtils.createFloatBuffer(4*MAX_BUFFER_SIZE);
-        GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, emitterLocations, GL15.GL_DYNAMIC_DRAW);
-        GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, ParticleShader.emitterUniformBlockBinding, uboBufferIndex);
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
+        GL15.glBufferData(GL43.GL_SHADER_STORAGE_BUFFER, emitterLocations, GL15.GL_DYNAMIC_DRAW);
+        GL30.glBindBufferBase(GL43.GL_SHADER_STORAGE_BUFFER, ParticleShader.trackedEmitterBinding, ssboBufferIndex);
+        GL15.glBindBuffer(GL43.GL_SHADER_STORAGE_BUFFER, 0);
     }
 
     EmitterBufferHandler() {
@@ -46,6 +46,7 @@ class EmitterBufferHandler {
             emitterLocations.put(4 * i, emitterLocation.x);
             emitterLocations.put(4 * i + 1, emitterLocation.y);
             emitterLocations.put(4 * i + 2, emitter.getXDir() * Misc.RAD_PER_DEG);
+            emitterLocations.put(4 * i + 3, emitter.isSmoothDynamic() ? 1f : 0f);
 
             // Check if the emitter is dead
             if (emitter.lastCampaignParticleDeathTime < currentCampaignTime &&
@@ -53,6 +54,7 @@ class EmitterBufferHandler {
                 emitter.untrack();
                 freePositions.add(i);
                 iterator.remove();
+                trackedEmitters[i] = null;
             }
         }
     }
@@ -86,8 +88,8 @@ class EmitterBufferHandler {
         return filledPositions.iterator().next();
     }
 
-    int getUboBufferIndex() {
-        return uboBufferIndex;
+    int getSSBOBufferIndex() {
+        return ssboBufferIndex;
     }
 
     FloatBuffer locationsToFloatBuffer() {

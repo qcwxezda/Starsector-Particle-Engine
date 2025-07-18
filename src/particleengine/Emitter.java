@@ -886,14 +886,14 @@ public class Emitter extends IEmitter {
 
     /**
      *  Writes this emitter's properties to a file with the given name. The directory is specified in
-     *  {@code particleengine.json}.
+     *  {@code particleengine_settings.json}.
      *
      * @param name File name to use
      */
     public void writeJSON(String name) {
         String directory = ParticleEngineModPlugin.savedEmittersDirectory;
         if (directory == null) {
-            log.warn("Saving disabled as [savedEmittersDirectory] couldn't be found in particleengine.json.");
+            log.warn("Saving disabled as [savedEmittersDirectory] couldn't be found in particleengine_settings.json.");
             return;
         }
         String fileLoc = directory + "/" + name;

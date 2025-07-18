@@ -1,3 +1,11 @@
+0.10.0:
+- Replaced tracked emitters UBO with SSBO
+    - Maximum number of dynamically anchored emitters increased from 1,024 to 10,000.
+    - Increased OpenGL requirement from 3.3 to 4.3.
+- Added IEmitter.setSmoothDynamic(boolean), which allows particles to transition from static (no particle-level anchor) to dynamic (position following an anchor) over their lifetime.
+- Added a much more expressive error message, along with instructions to soft-disable if your system doesn't support this mod.
+- Renamed particleengine.json to particleengine_settings.json.
+
 0.9.3:
 - Fixed issue where title screen wasn't being counted as a combat screen.
 

@@ -14,13 +14,14 @@ import java.util.TreeSet;
 
 class ParticleAllocator {
     static final Logger logger = Logger.getLogger(ParticleAllocator.class);
+
     /** In number of floats. */
-    static final int INITIAL_BUFFER_SIZE = 4096, MAX_BUFFER_SIZE = 2 << 29 - 1;
+    private static final int INITIAL_BUFFER_SIZE = 4096, MAX_BUFFER_SIZE = 2 << 29 - 1;
     /**
-     * If the fraction of alive particles in {@code combinedBuffer} is less than this number,
+     * If the fraction of live particles in {@code combinedBuffer} is less than this number,
      * will reallocate the buffer.
      */
-    static final float REFACTOR_FILL_FRACTION = 0.5f;
+    private static final float REFACTOR_FILL_FRACTION = 0.5f;
     /**
      * If an allocated cluster is compatible with the previous cluster in the buffer (that is, it dies earlier than the
      * previous cluster's death time + {@code CLUSTER_DESTRUCTION_DELAY}), they will be merged.
@@ -28,17 +29,19 @@ class ParticleAllocator {
      * to avoid adversarial scenarios in which a single long-living particle gets merged with many short-lived particles,
      * unnecessarily prolonging the life of all of those short-lived particles.
      */
-    static final int MAX_COALESCE_SIZE = 512 * Particles.FLOATS_PER_PARTICLE;
+    private static final int MAX_COALESCE_SIZE = 512 * Particles.FLOATS_PER_PARTICLE;
     /**
      * Delay, in seconds, after the last particle in a cluster dies before that cluster is cleaned up.
      */
-    static final float CLUSTER_DESTRUCTION_DELAY = 3f;
-    int bufferSize = INITIAL_BUFFER_SIZE, bufferPosition = 0;
-    SortedSet<AllocatedClusterData> allocatedClusters = new TreeSet<>();
-    AllocatedClusterData lastAllocated = null;
-    int particleCount = 0;
-    final int vao, vbo;
-    final ParticleType type;
+    private static final float CLUSTER_DESTRUCTION_DELAY = 3f;
+
+    private int bufferSize = INITIAL_BUFFER_SIZE;
+    int bufferPosition = 0;
+    private final SortedSet<AllocatedClusterData> allocatedClusters = new TreeSet<>();
+    private AllocatedClusterData lastAllocated = null;
+    private int particleCount = 0;
+    protected final int vao, vbo;
+    protected final ParticleType type;
 
     /**
      * Sets up an empty buffer with {@value INITIAL_BUFFER_SIZE} elements.
@@ -66,7 +69,7 @@ class ParticleAllocator {
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
     }
 
-    void registerParticleCreation(final AllocatedClusterData clusterData) {
+    private void registerParticleCreation(final AllocatedClusterData clusterData) {
         int count = clusterData.sizeInFloats / Particles.FLOATS_PER_PARTICLE;
         particleCount += count;
         // See if we can merge this cluster with the previously generated one
@@ -89,7 +92,7 @@ class ParticleAllocator {
         }
     }
 
-    void registerParticleDeath(AllocatedClusterData clusterData) {
+    private void registerParticleDeath(AllocatedClusterData clusterData) {
         allocatedClusters.remove(clusterData);
         particleCount -= clusterData.sizeInFloats / Particles.FLOATS_PER_PARTICLE;
         // Delete this allocator if there are no particles left
@@ -199,6 +202,9 @@ class ParticleAllocator {
                         startTime + bufferAndLife.two);
         registerParticleCreation(clusterData);
     }
+
+    int getVAO() {return vao;}
+    int getVBO() {return vbo;}
 
     private static class AllocatedClusterData implements Comparable<AllocatedClusterData> {
         private int locationInBuffer, sizeInFloats;

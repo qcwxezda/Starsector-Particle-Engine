@@ -30,7 +30,7 @@ record ParticleRenderer(Object layer, ParticleAllocator allocator, Particles own
         }
         GL20.glUniform2f(ParticleShader.spriteCenterLoc, spriteCenterX, spriteCenterY);
         GL20.glUniform1f(ParticleShader.viewportAlphaLoc, viewport.getAlphaMult());
-        GL30.glBindVertexArray(allocator.vao);
+        GL30.glBindVertexArray(allocator.getVAO());
         GL20.glUniform1i(ParticleShader.useTextureLoc, !hasTexture ? 0 : 1);
         GL31.glDrawArraysInstanced(
                 GL11.GL_TRIANGLE_STRIP,

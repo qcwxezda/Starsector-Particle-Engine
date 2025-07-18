@@ -63,7 +63,6 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
     }
 
     float currentCampaignTime = 0f, currentCombatTime = 0f;
-    static final float minBurstDelay = 1f / 60f;
     private static final String COMBAT_STATE = "com.fs.starfarer.combat.CombatState";
     private static final String TITLE_SCREEN_STATE = "Title Screen State";
     // Object is CombatEngineLayers or CampaignEngineLayers
@@ -92,7 +91,6 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
     }
 
     private record DeferredAction(Action action, float time) implements Comparable<DeferredAction> {
-
         @Override
         public int compareTo(DeferredAction o) {
             return Float.compare(time, o.time);
@@ -141,8 +139,8 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
             if (combatOnly && !(key instanceof CombatEngineLayers)) continue;
             for (var entry2 : entry.getValue().entrySet()) {
                 var allocator = entry2.getValue().one;
-                usedVAOs.add(allocator.vao);
-                usedVBOs.add(allocator.vbo);
+                usedVAOs.add(allocator.getVAO());
+                usedVBOs.add(allocator.getVBO());
             }
             iterator.remove();
         }
@@ -252,12 +250,12 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
         GL11.glEnable(GL11.GL_BLEND);
         if (!updatedTrackedEmittersThisFrame) {
             trackedEmitterHandler.updateTrackedEmitters(currentCampaignTime, currentCombatTime);
-            fillUniformBuffer();
+            fillSSBO();
             updatedTrackedEmittersThisFrame = true;
         }
         GL20.glUniformMatrix4(ParticleShader.projectionLoc, true, Utils.getProjectionMatrix(viewport));
         GL20.glUniform1f(ParticleShader.timeLoc, getCurrentTime());
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getUboBufferIndex());
+        GL15.glBindBuffer(GL43.GL_SHADER_STORAGE_BUFFER, trackedEmitterHandler.getSSBOBufferIndex());
     }
 
     @Override
@@ -274,19 +272,19 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
     }
 
     void postRender() {
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
+        GL15.glBindBuffer(GL43.GL_SHADER_STORAGE_BUFFER, 0);
         GL14.glBlendEquation(GL14.GL_FUNC_ADD);
         GL11.glDisable(GL11.GL_BLEND);
         GL20.glUseProgram(0);
     }
 
-    private void fillUniformBuffer() {
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, trackedEmitterHandler.getUboBufferIndex());
+    private void fillSSBO() {
+        GL15.glBindBuffer(GL43.GL_SHADER_STORAGE_BUFFER, trackedEmitterHandler.getSSBOBufferIndex());
         FloatBuffer ubo = trackedEmitterHandler.locationsToFloatBuffer();
         ubo.limit(4 * trackedEmitterHandler.getHighestFilledPosition() + 4);
-        GL15.glBufferSubData(GL31.GL_UNIFORM_BUFFER, 0, ubo);
+        GL15.glBufferSubData(GL43.GL_SHADER_STORAGE_BUFFER, 0, ubo);
         ubo.limit(ubo.capacity());
-        GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, 0);
+        GL15.glBindBuffer(GL43.GL_SHADER_STORAGE_BUFFER, 0);
     }
 
     static void removeType(ParticleType type) {
@@ -308,8 +306,8 @@ public class Particles extends BaseCombatLayeredRenderingPlugin implements Every
         ParticleAllocator allocator = pair.one;
         ParticleRenderer renderer = pair.two;
 
-        GL15.glDeleteBuffers(allocator.vbo);
-        GL30.glDeleteVertexArrays(allocator.vao);
+        GL15.glDeleteBuffers(allocator.getVBO());
+        GL30.glDeleteVertexArrays(allocator.getVAO());
 
         subMap.remove(type);
 

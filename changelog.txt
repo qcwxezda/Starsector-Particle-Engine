@@ -1,5 +1,8 @@
+0.10.2:
+- Version change to 0.98.5a.
+
 0.10.1:
-- Replaced texture2d with texture in fragment shader
+- Replaced texture2d with texture in fragment shader.
 
 0.10.0:
 - Replaced tracked emitters UBO with SSBO
